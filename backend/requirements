@@ -1,0 +1,9 @@
+flask
+pymongo
+flask-cors
+requests
+dotenv
+selenium
+beautifulsoup4
+tensorflow
+scikit-learn
