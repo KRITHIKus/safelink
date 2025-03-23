@@ -8,7 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
-#Set path to your local ChromeDriver executable
+# Set path to your local ChromeDriver executable
 CHROME_DRIVER_PATH = os.path.join(os.getcwd(), "chromedriver.exe")
 
 USER_AGENTS = [
@@ -22,18 +22,21 @@ async def capture_screenshot(url, domain):
 
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--disable-gpu")  #Faster rendering
-    chrome_options.add_argument("--no-sandbox")   #Improve startup speed
-    chrome_options.add_argument("--disable-dev-shm-usage")  #Avoid crashes
+    chrome_options.add_argument("--disable-gpu")  
+    chrome_options.add_argument("--no-sandbox")   
+    chrome_options.add_argument("--disable-dev-shm-usage")  
 
     def selenium_task():
         driver = None
         try:
-            service = Service(CHROME_DRIVER_PATH)  #Use local ChromeDriver
+            service = Service(CHROME_DRIVER_PATH)  
             driver = webdriver.Chrome(service=service, options=chrome_options)
             driver.get(url)
             driver.save_screenshot(screenshot_path)
             return screenshot_path
+        except Exception as e:
+            print(f"❌ Screenshot capture failed: {e}")
+            return None
         finally:
             if driver:
                 driver.quit()
@@ -44,7 +47,7 @@ async def fetch_page_content(url):
     headers = {"User-Agent": USER_AGENTS[int(time.time()) % len(USER_AGENTS)]}
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(url, headers=headers, timeout=5) as response:  #Faster timeout (5s)
+            async with session.get(url, headers=headers, timeout=5) as response:
                 return await response.text() if response.status == 200 else None
         except aiohttp.ClientError:
             return None
@@ -55,7 +58,7 @@ async def crawl_website(url):
 
     page_content = await fetch_page_content(url)
     if not page_content:
-        return {"error": "Failed to fetch page content."}
+        return {"error": "Failed to fetch page content."}, None  
 
     soup = BeautifulSoup(page_content, "html.parser")
     title = soup.title.string.strip() if soup.title and soup.title.string else "No Title"
@@ -67,6 +70,5 @@ async def crawl_website(url):
     return {
         "url": url,
         "title": title,
-        "description": description,
-        "screenshot": screenshot_path or "Failed to capture"
-    }
+        "description": description
+    }, screenshot_path  

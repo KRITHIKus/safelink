@@ -1,0 +1,10 @@
+# Ignore environment variables
+.env
+.env.local
+.env.production
+.env.development
+
+# Ignore node_modules and build files (for frontend)
+node_modules/
+dist/
+build/
