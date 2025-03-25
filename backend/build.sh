@@ -59,8 +59,14 @@ export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
 export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver"
 echo "✅ Chrome & ChromeDriver Installed Successfully"
 
-# ✅ Ensure We Are in the Backend Directory (Fixed!)
-cd /opt/render/project/src  # Change this if `backend/` is inside a different path
+# ✅ Navigate to Backend Directory (FIXED!)
+echo "📂 Current directory before fix: $(pwd)"
+
+# Ensure we are in the correct directory where `requirements.txt` exists
+if [[ ! -f "requirements.txt" ]]; then
+    echo "📂 Switching to backend directory..."
+    cd /opt/render/project/src/backend || { echo "❌ ERROR: Failed to change directory!"; exit 1; }
+fi
 
 echo "📂 Switched to backend directory: $(pwd)"
 
