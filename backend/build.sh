@@ -35,9 +35,9 @@ if [[ ! -s chrome.zip ]]; then
   exit 1
 fi
 
-# ✅ Extract Chrome
-unzip -q chrome.zip
-mv -T chrome-linux64 chrome
+# ✅ Extract Chrome **WITHOUT PROMPTS**
+unzip -qo chrome.zip
+mv -T chrome-linux64 chrome || true  # Avoid failure if it already exists
 
 # ✅ Download ChromeDriver
 echo "⬇️ Downloading ChromeDriver..."
@@ -47,9 +47,9 @@ if [[ ! -s chromedriver.zip ]]; then
   exit 1
 fi
 
-# ✅ Extract ChromeDriver
-unzip -q chromedriver.zip
-mv -T chromedriver-linux64 chromedriver
+# ✅ Extract ChromeDriver **WITHOUT PROMPTS**
+unzip -qo chromedriver.zip
+mv -T chromedriver-linux64 chromedriver || true
 chmod +x chromedriver
 
 # ✅ Set environment variables
