@@ -15,11 +15,30 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # ✅ Corrected Chrome and ChromeDriver paths
-CHROME_BINARY = "/opt/render/chrome/chrome"
+CHROME_BINARY = "/opt/render/chrome/chrome/chrome"  # ✅ Fixed path
 CHROMEDRIVER_BINARY = "/opt/render/chrome/chromedriver/chromedriver"
+
+def ensure_chrome_exists():
+    """Ensures Chrome and ChromeDriver exist before running Selenium."""
+    if not os.path.exists(CHROME_BINARY):
+        logging.error(f"❌ ERROR: Chrome binary not found at {CHROME_BINARY}")
+        return False
+    if not os.path.exists(CHROMEDRIVER_BINARY):
+        logging.error(f"❌ ERROR: ChromeDriver binary not found at {CHROMEDRIVER_BINARY}")
+        return False
+
+    # ✅ Ensure both files are executable
+    os.chmod(CHROME_BINARY, 0o755)
+    os.chmod(CHROMEDRIVER_BINARY, 0o755)
+
+    return True
 
 def setup_driver():
     """Sets up Selenium WebDriver with Chrome in headless mode."""
+    if not ensure_chrome_exists():
+        logging.error("❌ Chrome setup failed. Exiting...")
+        return None
+
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
@@ -30,20 +49,6 @@ def setup_driver():
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-software-rasterizer")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-
-    # ✅ Ensure paths exist
-    if not os.path.exists(CHROME_BINARY):
-        logging.error(f"❌ ERROR: Chrome binary not found at {CHROME_BINARY}")
-        return None
-    if not os.path.exists(CHROMEDRIVER_BINARY):
-        logging.error(f"❌ ERROR: ChromeDriver binary not found at {CHROMEDRIVER_BINARY}")
-        return None
-
-    # ✅ Ensure ChromeDriver is executable
-    os.chmod(CHROMEDRIVER_BINARY, 0o755)
-
-    logging.info(f"🔍 Chrome Path: {CHROME_BINARY}")
-    logging.info(f"🔍 ChromeDriver Path: {CHROMEDRIVER_BINARY}")
 
     chrome_options.binary_location = CHROME_BINARY
 
@@ -106,33 +111,19 @@ async def fetch_page_content(url, retries=3):
             except asyncio.TimeoutError:
                 logging.warning(f"⏳ Timeout on attempt {attempt + 1} for {url}. Retrying...")
             except aiohttp.ClientError as e:
-                logging.error(f"❌ Request failed on attempt {attempt + 1} for {url}: {e}")
+                logging.error(f"❌ Request failed: {e}")
 
-        logging.error(f"🚫 Failed to fetch {url} after {retries} retries.")
         return None
 
 async def crawl_website(url):
-    """Crawls the given website and extracts title, description, and uploads a screenshot to Cloudinary."""
+    """Crawls the given website and extracts metadata."""
     parsed_url = urlparse(url)
     domain = parsed_url.netloc.lower()
-
     page_content = await fetch_page_content(url)
-    if not page_content:
-        logging.error(f"⏳ Timeout: {url} took too long to respond.")
-        return {"error": "Failed to fetch page content.", "url": url, "screenshot_url": None}
 
-    soup = BeautifulSoup(page_content, "html.parser")
-    title = soup.title.string.strip() if soup.title and soup.title.string else "No Title"
-    description = soup.find("meta", attrs={"name": "description"})
-    description = description["content"].strip() if description and description.has_attr("content") else "No Description"
+    soup = BeautifulSoup(page_content, "html.parser") if page_content else None
+    title = soup.title.string.strip() if soup and soup.title else "No Title"
 
     cloudinary_url = await capture_screenshot(url, domain)
 
-    return {
-        "url": url,
-        "title": title,
-        "description": description,
-        "screenshot_url": cloudinary_url
-    }
-
-
+    return {"url": url, "title": title, "screenshot_url": cloudinary_url}

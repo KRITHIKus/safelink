@@ -40,9 +40,14 @@ unzip -qo chromedriver.zip && rm -f chromedriver.zip
 mv -f chromedriver-linux64 chromedriver
 chmod +x chromedriver/chromedriver
 
+# ✅ Apply Permissions to Chrome
+chmod +x chrome/chrome
+
 # ✅ Fix Chrome Path
 export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
 export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver/chromedriver"
+echo "✅ Chrome Binary: $CHROME_BINARY"
+echo "✅ ChromeDriver Binary: $CHROMEDRIVER_BINARY"
 
 # ✅ Install Required Libraries
 apt-get update && apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libgbm1 libasound2
