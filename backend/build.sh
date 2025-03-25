@@ -59,9 +59,10 @@ export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
 export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver"
 echo "✅ Chrome & ChromeDriver Installed Successfully"
 
-# ✅ Ensure We Are in the Backend Directory (No Unnecessary `cd`)
-BACKEND_DIR="$(pwd)"  # Render already starts in `backend/`
-echo "📂 Using backend directory: $BACKEND_DIR"
+# ✅ Ensure We Are in the Backend Directory (Fixed!)
+cd /opt/render/project/src  # Change this if `backend/` is inside a different path
+
+echo "📂 Switched to backend directory: $(pwd)"
 
 # ✅ Verify `requirements.txt`
 REQ_FILE="requirements.txt"
