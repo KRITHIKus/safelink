@@ -9,6 +9,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 import cloudinary.uploader  # ✅ Cloudinary for screenshot upload
 import logging  # ✅ Added logging for debugging
+import os  # ✅ Import os for environment variables
 
 # ✅ Configure logging for debugging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -20,14 +21,19 @@ def setup_driver():
     chrome_options.add_argument("--disable-gpu")  
     chrome_options.add_argument("--no-sandbox")  
     chrome_options.add_argument("--disable-dev-shm-usage")  
-    chrome_options.add_argument("--remote-debugging-port=9222")  # ✅ Needed for some cloud platforms
+    chrome_options.add_argument("--remote-debugging-port=9222")  
+    chrome_options.add_argument("--disable-background-networking")  # ✅ Reduce memory usage
+    chrome_options.add_argument("--disable-extensions")  
 
-    # ✅ Fixed Chrome binary path for Render deployment
-    chrome_options.binary_location = "/usr/bin/chromium"
+    # ✅ Get Chrome & ChromeDriver paths from environment variables
+    chrome_binary = os.getenv("CHROME_BINARY", "/opt/render/chrome/chrome/chrome")
+    chromedriver_binary = os.getenv("CHROMEDRIVER_BINARY", "/opt/render/chrome/chromedriver")
+
+    chrome_options.binary_location = chrome_binary
 
     try:
-        # ✅ Used system-installed ChromeDriver instead of dynamic download
-        service = Service("/usr/bin/chromedriver")
+        # ✅ Use dynamically fetched ChromeDriver path
+        service = Service(chromedriver_binary)
         driver = webdriver.Chrome(service=service, options=chrome_options)
         return driver
     except Exception as e:
