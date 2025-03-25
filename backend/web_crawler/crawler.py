@@ -14,9 +14,9 @@ import os
 # ✅ Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# ✅ Define Chrome and ChromeDriver paths
-CHROME_BINARY = "/opt/render/chrome/chrome"
-CHROMEDRIVER_BINARY = "/opt/render/chromedriver/chromedriver"
+# ✅ Corrected Chrome and ChromeDriver paths
+CHROME_BINARY = "/opt/render/chrome/chrome/chrome"
+CHROMEDRIVER_BINARY = "/opt/render/chrome/chromedriver/chromedriver"
 
 def setup_driver():
     """Sets up Selenium WebDriver with Chrome in headless mode."""
@@ -134,3 +134,9 @@ async def crawl_website(url):
         "description": description,
         "screenshot_url": cloudinary_url
     }
+
+# ✅ Test Run
+if __name__ == "__main__":
+    test_url = "https://nodejs.org/en"  # Replace with an actual URL
+    result = asyncio.run(crawl_website(test_url))
+    logging.info(f"🔍 Crawled Data: {result}")
