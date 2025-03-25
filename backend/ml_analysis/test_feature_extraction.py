@@ -45,6 +45,6 @@ def predict_url(url):
 
 
 if __name__ == "__main__":
-    test_url = "https://www.infosys.com/"  
+    test_url = "https://www.figma.com/"  
     result = predict_url(test_url)
     print("🛡️ Detection Result:", result)

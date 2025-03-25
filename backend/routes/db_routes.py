@@ -11,7 +11,7 @@ def get_scanned_url():
     if not url:
         return jsonify({"error": "Provide 'url' parameter"}), 400
 
-    #Search in both collections
+    # Search in both collections
     result = safe_urls.find_one({"url": url}, {"_id": 0}) or phishing_urls.find_one({"url": url}, {"_id": 0})
 
     if result:
@@ -24,25 +24,35 @@ def get_scanned_url():
 @db_bp.route("/get-urls-by-status", methods=["GET"])
 def get_urls_by_status():
     """Fetch URLs by status (Safe or Malicious) with optional date filter."""
-    status = request.args.get("status")  
+    status = request.args.get("status")  # Expecting 'safe' or 'malicious'
     date_str = request.args.get("date")
 
-    if not status:
-        query = {}
-        if date_str:
-            try:
-                date = datetime.strptime(date_str, "%Y-%m-%d")
-                query["timestamp"] = {"$gte": date, "$lt": date.replace(hour=23, minute=59, second=59)}
-            except ValueError:
-                return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+    query = {}
 
+    # ✅ Correct status filter logic
+    if status == "safe":
+        collection = safe_urls
+    elif status == "malicious":
+        collection = phishing_urls
+    elif status is None:
+        # If no status provided, fetch from both collections
         safe_data = list(safe_urls.find(query, {"_id": 0}))
         malicious_data = list(phishing_urls.find(query, {"_id": 0}))
-        all_urls = safe_data + malicious_data
+        return jsonify(safe_data + malicious_data), 200
+    else:
+        return jsonify({"error": "Invalid status. Use 'safe' or 'malicious'."}), 400
 
-        return jsonify(all_urls if all_urls else {"message": "No URLs found for the given filters"}), 200
+    # ✅ Apply date filter (if provided)
+    if date_str:
+        try:
+            date = datetime.strptime(date_str, "%Y-%m-%d")
+            query["timestamp"] = {"$gte": date, "$lt": date.replace(hour=23, minute=59, second=59)}
+        except ValueError:
+            return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
 
-    return jsonify({"error": "Invalid status. Use 'safe' or 'malicious'."}), 400
+    results = list(collection.find(query, {"_id": 0}))
+
+    return jsonify(results if results else {"message": "No URLs found for the given filters"}), 200
 
 @db_bp.route("/get-screenshot", methods=["GET"])
 def get_screenshot():

@@ -1,4 +1,3 @@
-import os
 import joblib
 import pandas as pd
 from dotenv import load_dotenv
@@ -8,11 +7,10 @@ import aiohttp
 import re
 import tldextract
 import whois
-
+import os  # Added missing import
 
 load_dotenv()
 OPENPAGERANK_API_KEY = os.getenv("OPENPAGERANK_API_KEY")
-
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.dirname(script_dir)
@@ -46,11 +44,19 @@ async def async_whois(domain):
     return 0
 
 async def fetch_page_content(url, session):
-    """Fetches webpage content asynchronously."""
+    """Fetches webpage content asynchronously with error handling."""
     try:
-        async with session.get(url, timeout=7, headers={"User-Agent": "Mozilla/5.0"}) as response:
-            return await response.text() if response.status == 200 else ""
-    except aiohttp.ClientError:
+        async with session.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"}) as response:
+            if response.status == 200:
+                return await response.text()
+            else:
+                print(f"Error: Received {response.status} for {url}")
+                return ""
+    except aiohttp.ClientError as e:
+        print(f"Request failed for {url}: {e}")
+        return ""
+    except asyncio.TimeoutError:
+        print(f"TimeoutError: {url} took too long to respond.")
         return ""
 
 async def get_website_traffic(domain, session):
@@ -64,6 +70,7 @@ async def get_website_traffic(domain, session):
             if data.get("response"):
                 return data["response"][0].get("page_rank_integer", 0)
     except Exception:
+        print(f"Failed to fetch traffic data for {domain}")
         return 0
     return 0
 
@@ -86,6 +93,10 @@ async def extract_features(url):
         domain_reg_length, page_content, website_traffic = await asyncio.gather(
             whois_task, page_task, traffic_task
         )
+
+    if not page_content:
+        print(f"Skipping {url} - No page content retrieved.")
+        return None, "Failed to fetch page content"
 
     features["DomainRegLen"] = domain_reg_length
     features["WebsiteTraffic"] = website_traffic
@@ -110,4 +121,4 @@ def run_ml_model(features_df):
 
         return ("Malicious" if prediction == 1 else "Safe"), round(confidence * 100, 2)
     except Exception as e:
-        return f"Error: {str(e)}", 0.0
+        return f"Error: {str(e)}", 0.0  

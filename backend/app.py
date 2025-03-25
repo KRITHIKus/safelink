@@ -7,15 +7,10 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Debugging: Check if Cloudinary credentials are loaded (Remove in production)
-print("Cloudinary Config:")
-print("Cloud Name:", os.getenv("CLOUDINARY_CLOUD_NAME"))
-print("API Key:", os.getenv("CLOUDINARY_API_KEY"))
-print("API Secret:", os.getenv("CLOUDINARY_API_SECRET"))
-
-# Flask app initialization
 app = Flask(__name__)
-CORS(app)
+
+# ✅ Allow requests from your frontend
+CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
 
 # Configure Cloudinary (Explicitly setting it here)
 cloudinary.config(
@@ -33,6 +28,6 @@ app.register_blueprint(crawler_bp, url_prefix="/crawler")
 app.register_blueprint(virustotal_bp, url_prefix="/virustotal")
 app.register_blueprint(db_bp, url_prefix="/db")
 
-# Run the Flask app
+# ✅ Run the Flask app with Gunicorn compatibility
 if __name__ == "__main__":
-    app.run(debug=True, threaded=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), threaded=True)
