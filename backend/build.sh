@@ -52,12 +52,10 @@ unzip -qo chromedriver.zip
 mv -T chromedriver-linux64 chromedriver || true
 chmod +x chromedriver
 
-# ✅ Set environment variables
-echo "🌍 Setting Environment Variables..."
-echo "export CHROME_BINARY=$INSTALL_DIR/chrome/chrome" >> /etc/environment
-echo "export CHROMEDRIVER_BINARY=$INSTALL_DIR/chromedriver" >> /etc/environment
+# ✅ Set environment variables LOCALLY (for the current session)
 export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
 export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver"
+echo "✅ Chrome & ChromeDriver Installed Successfully"
 
 # ✅ Move to the backend directory before installing dependencies
 BACKEND_DIR="$(dirname "$0")/backend"
