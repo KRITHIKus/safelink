@@ -1,4 +1,4 @@
-import asyncio 
+import asyncio
 import aiohttp
 import random
 import time  # ✅ Import time for timestamps
@@ -17,19 +17,19 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # ✅ Use headless Chrome instead of local ChromeDriver.exe
 def setup_driver():
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  
-    chrome_options.add_argument("--disable-gpu")  
-    chrome_options.add_argument("--no-sandbox")  
-    chrome_options.add_argument("--disable-dev-shm-usage")  
-    chrome_options.add_argument("--remote-debugging-port=9222")  
-    chrome_options.add_argument("--disable-background-networking")  # ✅ Reduce memory usage
-    chrome_options.add_argument("--disable-extensions")  
-    chrome_options.add_argument("--disable-software-rasterizer")  # ✅ Fix for some rendering issues
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # ✅ Bypass bot detection
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--remote-debugging-port=9222")
+    chrome_options.add_argument("--disable-background-networking")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
 
     # ✅ Get Chrome & ChromeDriver paths from environment variables
-    chrome_binary = os.getenv("CHROME_BINARY", "/opt/render/chrome")
-    chromedriver_binary = os.getenv("CHROMEDRIVER_BINARY", "/opt/render/chrome/chromedriver")
+    chrome_binary = os.getenv("CHROME_BINARY", "/opt/render/chrome/chrome/chrome")
+    chromedriver_binary = os.getenv("CHROMEDRIVER_BINARY", "/opt/render/chrome/chromedriver/chromedriver")
 
     # ✅ Ensure binaries exist before proceeding
     if not os.path.exists(chrome_binary):
@@ -39,10 +39,11 @@ def setup_driver():
         logging.error(f"❌ ERROR: ChromeDriver binary not found at {chromedriver_binary}")
         return None
 
+    os.chmod(chromedriver_binary, 0o755)  # ✅ Ensure ChromeDriver is executable
+
     chrome_options.binary_location = chrome_binary
 
     try:
-        # ✅ Use dynamically fetched ChromeDriver path
         service = Service(chromedriver_binary)
         driver = webdriver.Chrome(service=service, options=chrome_options)
         logging.info("✅ ChromeDriver initialized successfully.")
@@ -68,11 +69,14 @@ async def capture_screenshot(url, domain):
             cloudinary_id = f"{domain}_{int(time.time())}"  # ✅ Unique ID based on timestamp
 
             logging.info(f"📤 Uploading screenshot to Cloudinary: {cloudinary_id}")
-            response = cloudinary.uploader.upload(screenshot_data, public_id=cloudinary_id, overwrite=False)
-            cloudinary_url = response.get("secure_url")
-
-            logging.info(f"✅ Screenshot uploaded successfully: {cloudinary_url}")
-            return cloudinary_url
+            try:
+                response = cloudinary.uploader.upload(screenshot_data, public_id=cloudinary_id, overwrite=False)
+                cloudinary_url = response.get("secure_url")
+                logging.info(f"✅ Screenshot uploaded successfully: {cloudinary_url}")
+                return cloudinary_url
+            except Exception as e:
+                logging.error(f"❌ Cloudinary upload failed: {e}")
+                return None
         except Exception as e:
             logging.error(f"❌ Screenshot capture failed: {e}")
             return None
@@ -87,7 +91,7 @@ async def fetch_page_content(url, retries=3):
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
     ])}
-    
+
     async with aiohttp.ClientSession() as session:
         for attempt in range(retries):
             try:

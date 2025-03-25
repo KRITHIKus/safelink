@@ -30,45 +30,25 @@ echo "🧹 Cleaning up old Chrome & ChromeDriver..."
 rm -rf chrome chromedriver chrome.zip chromedriver.zip
 
 # ✅ Download & Extract Chrome
-echo "⬇️ Downloading Chrome..."
 wget --retry-connrefused --waitretry=5 --tries=3 --progress=bar:force "$LATEST_CHROME" -O chrome.zip
-if [[ ! -s chrome.zip ]]; then
-  echo "❌ ERROR: Chrome download failed!"
-  exit 1
-fi
-unzip -qo chrome.zip
-rm -f chrome.zip  # Cleanup zip file
+unzip -qo chrome.zip && rm -f chrome.zip
 mv -f chrome-linux64 chrome  # ✅ Ensure correct path
 
 # ✅ Download & Extract ChromeDriver
-echo "⬇️ Downloading ChromeDriver..."
 wget --retry-connrefused --waitretry=5 --tries=3 --progress=bar:force "$LATEST_DRIVER" -O chromedriver.zip
-if [[ ! -s chromedriver.zip ]]; then
-  echo "❌ ERROR: ChromeDriver download failed!"
-  exit 1
-fi
-unzip -qo chromedriver.zip
-rm -f chromedriver.zip  # Cleanup zip file
+unzip -qo chromedriver.zip && rm -f chromedriver.zip
 mv -f chromedriver-linux64 chromedriver
-chmod +x chromedriver
+chmod +x chromedriver/chromedriver
 
-# ✅ 🔥 **Fix: Set Correct Environment Variables**
-export CHROME_BINARY="$INSTALL_DIR/chrome"  # ✅ Fixed path
-export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver"
+# ✅ Fix Chrome Path
+export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
+export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver/chromedriver"
 
-# ✅ Ensure We Are in the Backend Directory
-cd /opt/render/project/src/backend  # Adjusted Path!
+# ✅ Install Required Libraries
+apt-get update && apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libgbm1 libasound2
 
-echo "📂 Switched to backend directory: $(pwd)"
-
-# ✅ Verify & Install Python Dependencies
-REQ_FILE="requirements.txt"
-if [[ -f "$REQ_FILE" ]]; then
-    echo "✅ Found $REQ_FILE, installing dependencies..."
-    pip install --no-cache-dir -r "$REQ_FILE"
-else
-    echo "❌ ERROR: $REQ_FILE not found in $(pwd)!"
-    exit 1
-fi
+# ✅ Switch to Backend Directory
+cd /opt/render/project/src/backend
+pip install --no-cache-dir -r requirements.txt
 
 echo "🎉 Build completed successfully!"
