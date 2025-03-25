@@ -24,10 +24,20 @@ def setup_driver():
     chrome_options.add_argument("--remote-debugging-port=9222")  
     chrome_options.add_argument("--disable-background-networking")  # ✅ Reduce memory usage
     chrome_options.add_argument("--disable-extensions")  
+    chrome_options.add_argument("--disable-software-rasterizer")  # ✅ Fix for some rendering issues
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # ✅ Bypass bot detection
 
     # ✅ Get Chrome & ChromeDriver paths from environment variables
     chrome_binary = os.getenv("CHROME_BINARY", "/opt/render/chrome/chrome/chrome")
     chromedriver_binary = os.getenv("CHROMEDRIVER_BINARY", "/opt/render/chrome/chromedriver")
+
+    # ✅ Ensure binaries exist before proceeding
+    if not os.path.exists(chrome_binary):
+        logging.error(f"❌ ERROR: Chrome binary not found at {chrome_binary}")
+        return None
+    if not os.path.exists(chromedriver_binary):
+        logging.error(f"❌ ERROR: ChromeDriver binary not found at {chromedriver_binary}")
+        return None
 
     chrome_options.binary_location = chrome_binary
 
@@ -35,6 +45,7 @@ def setup_driver():
         # ✅ Use dynamically fetched ChromeDriver path
         service = Service(chromedriver_binary)
         driver = webdriver.Chrome(service=service, options=chrome_options)
+        logging.info("✅ ChromeDriver initialized successfully.")
         return driver
     except Exception as e:
         logging.error(f"❌ ChromeDriver setup failed: {e}")
@@ -76,6 +87,7 @@ async def fetch_page_content(url, retries=3):
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
     ])}
+    
     async with aiohttp.ClientSession() as session:
         for attempt in range(retries):
             try:
