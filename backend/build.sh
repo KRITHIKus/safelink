@@ -52,7 +52,7 @@ unzip -qo chromedriver.zip
 mv -T chromedriver-linux64 chromedriver || true
 chmod +x chromedriver
 
-# ✅ Set environment variables LOCALLY (for the current session)
+# ✅ Set environment variables LOCALLY
 export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
 export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver"
 echo "✅ Chrome & ChromeDriver Installed Successfully"
