@@ -90,13 +90,17 @@ async def run_scan(url):
         if cloudinary_url:
             website_name = get_website_name(url)
             print(f"💾 Storing screenshot in MongoDB for {website_name}...")
-            screenshots.insert_one({
-                "website_name": website_name, 
-                "url": url, 
-                "screenshot_url": cloudinary_url
-            })
+            try:
+                result = screenshots.insert_one({
+                    "website_name": website_name, 
+                    "url": url, 
+                    "screenshot_url": cloudinary_url
+                })
+                print(f"✅ Screenshot URL stored in MongoDB. Inserted ID: {result.inserted_id}")
+            except Exception as db_error:
+                print(f"❌ Error inserting screenshot into MongoDB: {db_error}")
+
             crawler_results["screenshot_url"] = cloudinary_url  # ✅ Ensure it's inside crawler_results
-            print(f"✅ Screenshot URL stored: {cloudinary_url}")
 
     response = {
         "url": url,
@@ -128,34 +132,38 @@ def run_ml_model(features_df):
 
 def upload_screenshot(url, screenshot_path):
     """Uploads screenshot to Cloudinary and returns the URL."""
-    print(f"📤 Uploading screenshot for {url}...")
+    print(f"📤 Attempting to upload screenshot for URL: {url}")
 
     try:
+        # 🔍 Check if file exists before proceeding
         if not os.path.exists(screenshot_path):
-            print(f"❌ Screenshot file does not exist: {screenshot_path}")
+            print(f"❌ Screenshot file not found: {screenshot_path}")
             return None
 
-        website_name = get_website_name(url)  
-        unique_id = int(time.time())  # Get current timestamp
-        cloudinary_id = f"{website_name}_{unique_id}"  # Append timestamp to prevent overwriting
+        # Extract website name
+        website_name = get_website_name(url)
+        unique_id = int(time.time())  # Timestamp for uniqueness
+        cloudinary_id = f"{website_name}_{unique_id}"  # Prevent filename collisions
 
-        print(f"✅ Uploading {screenshot_path} to Cloudinary as {cloudinary_id}...")
+        print(f"✅ Found screenshot. Uploading as {cloudinary_id} to Cloudinary...")
 
+        # Upload to Cloudinary
         response = cloudinary.uploader.upload(
             screenshot_path, public_id=cloudinary_id, unique_filename=True, overwrite=False
         )
 
         cloudinary_url = response.get("secure_url")
+        
+        # Check Cloudinary response
+        if not cloudinary_url:
+            print(f"⚠️ Cloudinary did not return a secure URL. Response: {response}")
+            return None
 
-        if cloudinary_url:
-            print(f"✅ Uploaded successfully: {cloudinary_url}")
-        else:
-            print(f"⚠️ Cloudinary response did not contain a URL: {response}")
-
+        print(f"✅ Screenshot successfully uploaded to Cloudinary: {cloudinary_url}")
         return cloudinary_url
 
     except Exception as e:
-        print(f"❌ Error uploading to Cloudinary: {e}")
+        print(f"❌ Error uploading to Cloudinary: {str(e)}")
         return None
 
 def get_website_name(url):
