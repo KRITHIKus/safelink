@@ -37,20 +37,32 @@ mv -f chrome-linux64 chrome  # ✅ Ensure correct path
 # ✅ Download & Extract ChromeDriver
 wget --retry-connrefused --waitretry=5 --tries=3 --progress=bar:force "$LATEST_DRIVER" -O chromedriver.zip
 unzip -qo chromedriver.zip && rm -f chromedriver.zip
-mv -f chromedriver-linux64 chromedriver
-chmod +x chromedriver/chromedriver
+mv -f chromedriver-linux64 chromedriver  # ✅ Corrected Path
+chmod +x chromedriver/chromedriver  # ✅ Ensure ChromeDriver is executable
 
 # ✅ Apply Permissions to Chrome
 chmod +x chrome/chrome
+
+# ✅ Install Required Libraries (Added retries for stability)
+apt-get update && apt-get install -y --no-install-recommends \
+    unzip \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+    libgbm1 libasound2 libx11-xcb1 libxcomposite1 libxrandr2 \
+    libxdamage1 libxfixes3 libxkbcommon0 libpango-1.0-0 libpangocairo-1.0-0 \
+    libgtk-3-0 libxshmfence1 libglu1-mesa || {
+        echo "❌ ERROR: Failed to install dependencies. Retrying..."
+        apt-get install -y --no-install-recommends unzip \
+            libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+            libgbm1 libasound2 libx11-xcb1 libxcomposite1 libxrandr2 \
+            libxdamage1 libxfixes3 libxkbcommon0 libpango-1.0-0 libpangocairo-1.0-0 \
+            libgtk-3-0 libxshmfence1 libglu1-mesa
+    }
 
 # ✅ Set Environment Variables (Updated Paths)
 export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
 export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver/chromedriver"
 echo "✅ Chrome Binary: $CHROME_BINARY"
 echo "✅ ChromeDriver Binary: $CHROMEDRIVER_BINARY"
-
-# ✅ Install Required Libraries
-apt-get update && apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libgbm1 libasound2
 
 # ✅ Switch to Backend Directory
 cd /opt/render/project/src/backend

@@ -52,7 +52,16 @@ def setup_driver():
     chrome_options.add_argument("--disable-software-rasterizer")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
 
+    # ✅ New Fixes for Stability
+    chrome_options.add_argument("--disable-setuid-sandbox")
+    chrome_options.add_argument("--disable-crash-reporter")
+    chrome_options.add_argument("--disable-translate")
+    chrome_options.add_argument("--safebrowsing-disable-auto-update")
+
     chrome_options.binary_location = CHROME_BINARY
+
+    # ✅ Added delay before starting ChromeDriver to prevent session issues
+    time.sleep(2)
 
     try:
         service = Service(CHROMEDRIVER_BINARY)
