@@ -3,8 +3,8 @@ set -eux  # Stop on error, print all commands
 
 echo "🚀 Starting Build Script..."
 
-# ✅ Ensure Required Directories Exist
-INSTALL_DIR="/opt/render/chrome"
+# ✅ Use persistent directory for Render deployment
+INSTALL_DIR="/opt/render/project/src/chrome"
 mkdir -p "$INSTALL_DIR"
 
 # ✅ Get the latest stable Chrome version
@@ -43,7 +43,7 @@ chmod +x chromedriver/chromedriver
 # ✅ Apply Permissions to Chrome
 chmod +x chrome/chrome
 
-# ✅ Fix Chrome Path
+# ✅ Set Environment Variables (Updated Paths)
 export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
 export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver/chromedriver"
 echo "✅ Chrome Binary: $CHROME_BINARY"

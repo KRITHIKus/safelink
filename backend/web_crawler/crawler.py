@@ -14,9 +14,9 @@ import os
 # ✅ Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# ✅ Corrected Chrome and ChromeDriver paths
-CHROME_BINARY = "/opt/render/chrome/chrome/chrome"  # ✅ Fixed path
-CHROMEDRIVER_BINARY = "/opt/render/chrome/chromedriver/chromedriver"
+# ✅ Corrected Chrome and ChromeDriver paths (Persistent storage)
+CHROME_BINARY = "/opt/render/project/src/chrome/chrome/chrome"
+CHROMEDRIVER_BINARY = "/opt/render/project/src/chrome/chromedriver/chromedriver"
 
 def ensure_chrome_exists():
     """Ensures Chrome and ChromeDriver exist before running Selenium."""
@@ -28,9 +28,11 @@ def ensure_chrome_exists():
         return False
 
     # ✅ Ensure both files are executable
-    os.chmod(CHROME_BINARY, 0o755)
-    os.chmod(CHROMEDRIVER_BINARY, 0o755)
+    os.chmod(CHROME_BINARY, 0o777)
+    os.chmod(CHROMEDRIVER_BINARY, 0o777)
 
+    logging.info(f"✅ Chrome binary found at {CHROME_BINARY}")
+    logging.info(f"✅ ChromeDriver binary found at {CHROMEDRIVER_BINARY}")
     return True
 
 def setup_driver():
