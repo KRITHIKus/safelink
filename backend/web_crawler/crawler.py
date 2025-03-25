@@ -1,21 +1,25 @@
 import asyncio
 import aiohttp
 import random
-import time  # ✅ Import time for timestamps
+import time
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-import cloudinary.uploader  # ✅ Cloudinary for screenshot upload
-import logging  # ✅ Added logging for debugging
-import os  # ✅ Import os for environment variables
+import cloudinary.uploader
+import logging
+import os
 
-# ✅ Configure logging for debugging
+# ✅ Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# ✅ Use headless Chrome instead of local ChromeDriver.exe
+# ✅ Define Chrome and ChromeDriver paths
+CHROME_BINARY = "/opt/render/chrome/chrome"
+CHROMEDRIVER_BINARY = "/opt/render/chromedriver/chromedriver"
+
 def setup_driver():
+    """Sets up Selenium WebDriver with Chrome in headless mode."""
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
@@ -27,24 +31,24 @@ def setup_driver():
     chrome_options.add_argument("--disable-software-rasterizer")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
 
-    # ✅ Get Chrome & ChromeDriver paths from environment variables
-    chrome_binary = os.getenv("CHROME_BINARY", "/opt/render/chrome/chrome/chrome")
-    chromedriver_binary = os.getenv("CHROMEDRIVER_BINARY", "/opt/render/chrome/chromedriver/chromedriver")
-
-    # ✅ Ensure binaries exist before proceeding
-    if not os.path.exists(chrome_binary):
-        logging.error(f"❌ ERROR: Chrome binary not found at {chrome_binary}")
+    # ✅ Ensure paths exist
+    if not os.path.exists(CHROME_BINARY):
+        logging.error(f"❌ ERROR: Chrome binary not found at {CHROME_BINARY}")
         return None
-    if not os.path.exists(chromedriver_binary):
-        logging.error(f"❌ ERROR: ChromeDriver binary not found at {chromedriver_binary}")
+    if not os.path.exists(CHROMEDRIVER_BINARY):
+        logging.error(f"❌ ERROR: ChromeDriver binary not found at {CHROMEDRIVER_BINARY}")
         return None
 
-    os.chmod(chromedriver_binary, 0o755)  # ✅ Ensure ChromeDriver is executable
+    # ✅ Ensure ChromeDriver is executable
+    os.chmod(CHROMEDRIVER_BINARY, 0o755)
 
-    chrome_options.binary_location = chrome_binary
+    logging.info(f"🔍 Chrome Path: {CHROME_BINARY}")
+    logging.info(f"🔍 ChromeDriver Path: {CHROMEDRIVER_BINARY}")
+
+    chrome_options.binary_location = CHROME_BINARY
 
     try:
-        service = Service(chromedriver_binary)
+        service = Service(CHROMEDRIVER_BINARY)
         driver = webdriver.Chrome(service=service, options=chrome_options)
         logging.info("✅ ChromeDriver initialized successfully.")
         return driver
@@ -65,8 +69,8 @@ async def capture_screenshot(url, domain):
             driver.get(url)
             time.sleep(3)  # ✅ Wait for the page to load
 
-            screenshot_data = driver.get_screenshot_as_png()  # ✅ Capture screenshot as bytes
-            cloudinary_id = f"{domain}_{int(time.time())}"  # ✅ Unique ID based on timestamp
+            screenshot_data = driver.get_screenshot_as_png()
+            cloudinary_id = f"{domain}_{int(time.time())}"
 
             logging.info(f"📤 Uploading screenshot to Cloudinary: {cloudinary_id}")
             try:
@@ -81,7 +85,7 @@ async def capture_screenshot(url, domain):
             logging.error(f"❌ Screenshot capture failed: {e}")
             return None
         finally:
-            driver.quit()  # ✅ Close the browser session
+            driver.quit()
 
     return await asyncio.to_thread(selenium_task)
 
@@ -122,11 +126,11 @@ async def crawl_website(url):
     description = soup.find("meta", attrs={"name": "description"})
     description = description["content"].strip() if description and description.has_attr("content") else "No Description"
 
-    cloudinary_url = await capture_screenshot(url, domain)  # ✅ Upload screenshot directly
+    cloudinary_url = await capture_screenshot(url, domain)
 
     return {
         "url": url,
         "title": title,
         "description": description,
-        "screenshot_url": cloudinary_url  # ✅ Cloudinary screenshot URL
+        "screenshot_url": cloudinary_url
     }
