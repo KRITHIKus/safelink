@@ -42,7 +42,7 @@ def setup_driver():
         return None
 
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless=new")  # ✅ Updated headless mode
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -57,8 +57,13 @@ def setup_driver():
     chrome_options.add_argument("--disable-crash-reporter")
     chrome_options.add_argument("--disable-translate")
     chrome_options.add_argument("--safebrowsing-disable-auto-update")
+    chrome_options.add_argument("--disable-features=NetworkService,NetworkServiceInProcess")
+    chrome_options.add_argument("--disable-sync")
 
     chrome_options.binary_location = CHROME_BINARY
+
+    # ✅ Ensure ChromeDriver has execute permissions
+    os.chmod(CHROMEDRIVER_BINARY, 0o777)
 
     # ✅ Added delay before starting ChromeDriver to prevent session issues
     time.sleep(2)
@@ -127,14 +132,33 @@ async def fetch_page_content(url, retries=3):
         return None
 
 async def crawl_website(url):
-    """Crawls the given website and extracts metadata."""
+    """Crawls the given website and extracts metadata including title and description."""
     parsed_url = urlparse(url)
     domain = parsed_url.netloc.lower()
     page_content = await fetch_page_content(url)
 
     soup = BeautifulSoup(page_content, "html.parser") if page_content else None
+
+    # ✅ Extracting title
     title = soup.title.string.strip() if soup and soup.title else "No Title"
 
+    # ✅ Extracting meta description (Try both standard and OpenGraph meta tags)
+    description = "No Description"
+    if soup:
+        meta_desc = soup.find("meta", attrs={"name": "description"})
+        og_desc = soup.find("meta", attrs={"property": "og:description"})
+
+        if meta_desc and meta_desc.get("content"):
+            description = meta_desc["content"].strip()
+        elif og_desc and og_desc.get("content"):
+            description = og_desc["content"].strip()
+
+    # ✅ Capture screenshot
     cloudinary_url = await capture_screenshot(url, domain)
 
-    return {"url": url, "title": title, "screenshot_url": cloudinary_url}
+    return {
+        "url": url,
+        "title": title,
+        "description": description,  # ✅ Now includes meta description
+        "screenshot_url": cloudinary_url
+    }
