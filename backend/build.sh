@@ -42,5 +42,14 @@ echo "export CHROME_BINARY=/opt/render/chrome/chrome/chrome" >> ~/.bashrc
 echo "export CHROMEDRIVER_BINARY=/opt/render/chrome/chromedriver" >> ~/.bashrc
 source ~/.bashrc
 
+# ✅ Move to the backend directory before installing dependencies
+cd "$(dirname "$0")/backend" || { echo "❌ ERROR: Failed to navigate to backend directory"; exit 1; }
+
+# ✅ Verify if requirements.txt exists inside backend/
+if [[ ! -f "requirements.txt" ]]; then
+    echo "❌ ERROR: requirements.txt not found in $(pwd)"
+    exit 1
+fi
+
 # ✅ Install Python dependencies
-pip install -r requirements.txt
+pip install --no-cache-dir -r requirements.txt
