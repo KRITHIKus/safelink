@@ -43,20 +43,8 @@ chmod +x chromedriver/chromedriver  # ✅ Ensure ChromeDriver is executable
 # ✅ Apply Permissions to Chrome
 chmod +x chrome/chrome
 
-# ✅ Install Required Libraries (Added retries for stability)
-apt-get update && apt-get install -y --no-install-recommends \
-    unzip \
-    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
-    libgbm1 libasound2 libx11-xcb1 libxcomposite1 libxrandr2 \
-    libxdamage1 libxfixes3 libxkbcommon0 libpango-1.0-0 libpangocairo-1.0-0 \
-    libgtk-3-0 libxshmfence1 libglu1-mesa || {
-        echo "❌ ERROR: Failed to install dependencies. Retrying..."
-        apt-get install -y --no-install-recommends unzip \
-            libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
-            libgbm1 libasound2 libx11-xcb1 libxcomposite1 libxrandr2 \
-            libxdamage1 libxfixes3 libxkbcommon0 libpango-1.0-0 libpangocairo-1.0-0 \
-            libgtk-3-0 libxshmfence1 libglu1-mesa
-    }
+# 🚨 **Skipping apt-get installation due to read-only filesystem**
+echo "⚠️ Skipping apt-get package installation (Read-only filesystem). Assuming required libraries are pre-installed."
 
 # ✅ Set Environment Variables (Updated Paths)
 export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
