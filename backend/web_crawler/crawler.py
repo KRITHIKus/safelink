@@ -24,7 +24,7 @@ def setup_driver():
     chrome_options.add_argument("--remote-debugging-port=9222")  # ✅ Needed for some cloud platforms
 
     # ✅ Set Chrome binary location explicitly for Render deployment
-    chrome_options.binary_location = "/usr/bin/google-chrome"
+    chrome_options.binary_location = "/usr/bin/chromium-browser"
 
     try:
         # ✅ Automatically download & use the correct ChromeDriver version
