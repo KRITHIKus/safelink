@@ -42,10 +42,15 @@ echo "export CHROME_BINARY=/opt/render/chrome/chrome/chrome" >> ~/.bashrc
 echo "export CHROMEDRIVER_BINARY=/opt/render/chrome/chromedriver" >> ~/.bashrc
 source ~/.bashrc
 
-# ✅ Move to the backend directory before installing dependencies
-cd "$(dirname "$0")/backend" || { echo "❌ ERROR: Failed to navigate to backend directory"; exit 1; }
+# ✅ Move to backend directory correctly
+cd "$(dirname "$0")" || { echo "❌ ERROR: Failed to navigate to script directory"; exit 1; }
+cd backend || { echo "❌ ERROR: Failed to navigate to backend directory"; exit 1; }
 
-# ✅ Verify if requirements.txt exists inside backend/
+# ✅ Debugging: Show directory structure
+echo "Current directory: $(pwd)"
+ls -lah
+
+# ✅ Verify if requirements.txt exists
 if [[ ! -f "requirements.txt" ]]; then
     echo "❌ ERROR: requirements.txt not found in $(pwd)"
     exit 1
