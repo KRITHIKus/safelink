@@ -7,10 +7,6 @@ echo "🚀 Starting Build Script..."
 INSTALL_DIR="/opt/render/chrome"
 mkdir -p "$INSTALL_DIR"
 
-# ✅ Install Required System Dependencies
-echo "📦 Installing system dependencies..."
-apt-get update && apt-get install -y unzip wget curl jq chromium python3-pip python3-venv
-
 # ✅ Get the latest stable Chrome version
 LATEST_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json | jq -r '.channels.Stable.version')
 
@@ -42,7 +38,7 @@ if [[ ! -s chrome.zip ]]; then
 fi
 unzip -qo chrome.zip
 rm -f chrome.zip  # Cleanup zip file
-mv -f chrome-linux64 chrome  # Ensure clean move
+mv -f chrome-linux64 chrome  # ✅ Ensure correct path
 
 # ✅ Download & Extract ChromeDriver
 echo "⬇️ Downloading ChromeDriver..."
@@ -60,9 +56,19 @@ chmod +x chromedriver
 export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
 export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver"
 
-# ✅ Ensure Python & WebDriver Dependencies Are Installed
-echo "🐍 Installing Python dependencies..."
-pip install --no-cache-dir -r /opt/render/project/src/backend/requirements.txt
-pip install --no-cache-dir webdriver-manager selenium  
+# ✅ Ensure We Are in the Backend Directory
+cd /opt/render/project/src/backend  # Adjusted Path!
+
+echo "📂 Switched to backend directory: $(pwd)"
+
+# ✅ Verify & Install Python Dependencies
+REQ_FILE="requirements.txt"
+if [[ -f "$REQ_FILE" ]]; then
+    echo "✅ Found $REQ_FILE, installing dependencies..."
+    pip install --no-cache-dir -r "$REQ_FILE"
+else
+    echo "❌ ERROR: $REQ_FILE not found in $(pwd)!"
+    exit 1
+fi
 
 echo "🎉 Build completed successfully!"
