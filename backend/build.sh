@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eux  # Exit on error, show execution steps
+set -eux  # Stop on error, print all commands
 
 echo "🚀 Starting Build Script..."
 
@@ -18,13 +18,13 @@ fi
 
 echo "✅ Chrome Version: $LATEST_VERSION"
 
-# ✅ Create installation directory for Chrome & ChromeDriver
+# ✅ Set correct install path
 INSTALL_DIR="/opt/render/chrome"
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
-# ✅ Remove old Chrome and ChromeDriver (if they exist)
-echo "🧹 Cleaning up old Chrome & ChromeDriver installations..."
+# ✅ Remove old installations to avoid conflicts
+echo "🧹 Cleaning up old Chrome & ChromeDriver..."
 rm -rf chrome chromedriver chrome.zip chromedriver.zip
 
 # ✅ Download Chrome
@@ -35,9 +35,10 @@ if [[ ! -s chrome.zip ]]; then
   exit 1
 fi
 
-# ✅ Extract Chrome **WITHOUT PROMPTS**
+# ✅ Extract Chrome (No Prompts)
 unzip -qo chrome.zip
-mv -T chrome-linux64 chrome || true  # Avoid failure if it already exists
+rm -f chrome.zip  # Cleanup zip file
+mv -f chrome-linux64 chrome  # Ensure clean move
 
 # ✅ Download ChromeDriver
 echo "⬇️ Downloading ChromeDriver..."
@@ -47,33 +48,23 @@ if [[ ! -s chromedriver.zip ]]; then
   exit 1
 fi
 
-# ✅ Extract ChromeDriver **WITHOUT PROMPTS**
+# ✅ Extract ChromeDriver (No Prompts)
 unzip -qo chromedriver.zip
-mv -T chromedriver-linux64 chromedriver || true
+rm -f chromedriver.zip  # Cleanup zip file
+mv -f chromedriver-linux64 chromedriver
 chmod +x chromedriver
 
-# ✅ Set environment variables LOCALLY
+# ✅ Set Environment Variables
 export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
 export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver"
 echo "✅ Chrome & ChromeDriver Installed Successfully"
 
-# ✅ Move to the backend directory before installing dependencies
-BACKEND_DIR="$(dirname "$0")/backend"
+# ✅ Ensure We Are in the Backend Directory (No Unnecessary `cd`)
+BACKEND_DIR="$(pwd)"  # Render already starts in `backend/`
+echo "📂 Using backend directory: $BACKEND_DIR"
 
-echo "📂 Navigating to backend directory: $BACKEND_DIR"
-if [[ ! -d "$BACKEND_DIR" ]]; then
-    echo "❌ ERROR: Backend directory not found! Exiting..."
-    exit 1
-fi
-cd "$BACKEND_DIR"
-
-# ✅ Debugging: Check directory contents before installing requirements
-echo "📂 Verifying backend directory contents..."
-ls -lah
-
-# ✅ Install Python dependencies safely
+# ✅ Verify `requirements.txt`
 REQ_FILE="requirements.txt"
-
 if [[ -f "$REQ_FILE" ]]; then
     echo "✅ Found $REQ_FILE, installing dependencies..."
     pip install --no-cache-dir -r "$REQ_FILE"
