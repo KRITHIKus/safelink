@@ -1,5 +1,7 @@
 #!/bin/bash
-set -eux
+set -eux  # Exit on error, show execution steps
+
+echo "🚀 Starting Build Script..."
 
 # ✅ Get the latest stable Chrome version
 LATEST_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json | jq -r '.channels.Stable.version')
@@ -8,53 +10,78 @@ LATEST_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/l
 LATEST_CHROME="https://storage.googleapis.com/chrome-for-testing-public/$LATEST_VERSION/linux64/chrome-linux64.zip"
 LATEST_DRIVER="https://storage.googleapis.com/chrome-for-testing-public/$LATEST_VERSION/linux64/chromedriver-linux64.zip"
 
-# ✅ Check if URLs are valid
-if [[ "$LATEST_CHROME" == "null" || "$LATEST_DRIVER" == "null" ]]; then
-  echo "❌ Failed to fetch Chrome or ChromeDriver URLs. Exiting..."
+# ✅ Validate URLs
+if [[ -z "$LATEST_VERSION" || "$LATEST_VERSION" == "null" ]]; then
+  echo "❌ ERROR: Failed to fetch the latest Chrome version. Exiting..."
   exit 1
 fi
 
-# ✅ Create directory for Chrome & ChromeDriver
-mkdir -p /opt/render/chrome
-cd /opt/render/chrome
+echo "✅ Chrome Version: $LATEST_VERSION"
+
+# ✅ Create installation directory for Chrome & ChromeDriver
+INSTALL_DIR="/opt/render/chrome"
+mkdir -p "$INSTALL_DIR"
+cd "$INSTALL_DIR"
+
+# ✅ Remove old Chrome and ChromeDriver (if they exist)
+echo "🧹 Cleaning up old Chrome & ChromeDriver installations..."
+rm -rf chrome chromedriver chrome.zip chromedriver.zip
 
 # ✅ Download Chrome
+echo "⬇️ Downloading Chrome..."
 wget --retry-connrefused --waitretry=5 --tries=3 --progress=bar:force "$LATEST_CHROME" -O chrome.zip
-if [ ! -s chrome.zip ]; then
-  echo "❌ Chrome download failed!"
+if [[ ! -s chrome.zip ]]; then
+  echo "❌ ERROR: Chrome download failed!"
   exit 1
 fi
-unzip chrome.zip
-mv chrome-linux64 chrome
+
+# ✅ Extract Chrome
+unzip -q chrome.zip
+mv -T chrome-linux64 chrome
 
 # ✅ Download ChromeDriver
+echo "⬇️ Downloading ChromeDriver..."
 wget --retry-connrefused --waitretry=5 --tries=3 --progress=bar:force "$LATEST_DRIVER" -O chromedriver.zip
-if [ ! -s chromedriver.zip ]; then
-  echo "❌ ChromeDriver download failed!"
+if [[ ! -s chromedriver.zip ]]; then
+  echo "❌ ERROR: ChromeDriver download failed!"
   exit 1
 fi
-unzip chromedriver.zip
-mv chromedriver-linux64 chromedriver
+
+# ✅ Extract ChromeDriver
+unzip -q chromedriver.zip
+mv -T chromedriver-linux64 chromedriver
 chmod +x chromedriver
 
 # ✅ Set environment variables
-echo "export CHROME_BINARY=/opt/render/chrome/chrome/chrome" >> ~/.bashrc
-echo "export CHROMEDRIVER_BINARY=/opt/render/chrome/chromedriver" >> ~/.bashrc
-source ~/.bashrc
+echo "🌍 Setting Environment Variables..."
+echo "export CHROME_BINARY=$INSTALL_DIR/chrome/chrome" >> /etc/environment
+echo "export CHROMEDRIVER_BINARY=$INSTALL_DIR/chromedriver" >> /etc/environment
+export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
+export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver"
 
-# ✅ Move to backend directory correctly
-cd "$(dirname "$0")" || { echo "❌ ERROR: Failed to navigate to script directory"; exit 1; }
-cd backend || { echo "❌ ERROR: Failed to navigate to backend directory"; exit 1; }
+# ✅ Move to the backend directory before installing dependencies
+BACKEND_DIR="$(dirname "$0")/backend"
 
-# ✅ Debugging: Show directory structure
-echo "Current directory: $(pwd)"
+echo "📂 Navigating to backend directory: $BACKEND_DIR"
+if [[ ! -d "$BACKEND_DIR" ]]; then
+    echo "❌ ERROR: Backend directory not found! Exiting..."
+    exit 1
+fi
+cd "$BACKEND_DIR"
+
+# ✅ Debugging: Check directory contents before installing requirements
+echo "📂 Verifying backend directory contents..."
 ls -lah
 
-# ✅ Verify if requirements.txt exists
-if [[ ! -f "requirements.txt" ]]; then
-    echo "❌ ERROR: requirements.txt not found in $(pwd)"
+# ✅ Install Python dependencies safely
+REQ_FILE="requirements.txt"
+
+if [[ -f "$REQ_FILE" ]]; then
+    echo "✅ Found $REQ_FILE, installing dependencies..."
+    pip install --no-cache-dir -r "$REQ_FILE"
+else
+    echo "❌ ERROR: $REQ_FILE not found in $(pwd)!"
     exit 1
 fi
 
-# ✅ Install Python dependencies
-pip install --no-cache-dir -r requirements.txt
+echo "🎉 Build completed successfully!"
