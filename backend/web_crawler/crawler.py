@@ -1,4 +1,4 @@
-import asyncio
+import asyncio 
 import aiohttp
 import random
 import time  # ✅ Import time for timestamps
@@ -7,7 +7,6 @@ from urllib.parse import urlparse
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager  # ✅ Auto install ChromeDriver
 import cloudinary.uploader  # ✅ Cloudinary for screenshot upload
 import logging  # ✅ Added logging for debugging
 
@@ -23,12 +22,12 @@ def setup_driver():
     chrome_options.add_argument("--disable-dev-shm-usage")  
     chrome_options.add_argument("--remote-debugging-port=9222")  # ✅ Needed for some cloud platforms
 
-    # ✅ Set Chrome binary location explicitly for Render deployment
-    chrome_options.binary_location = "/usr/bin/chromium-browser"
+    # ✅ Fixed Chrome binary path for Render deployment
+    chrome_options.binary_location = "/usr/bin/chromium"
 
     try:
-        # ✅ Automatically download & use the correct ChromeDriver version
-        service = Service(ChromeDriverManager().install())
+        # ✅ Used system-installed ChromeDriver instead of dynamic download
+        service = Service("/usr/bin/chromedriver")
         driver = webdriver.Chrome(service=service, options=chrome_options)
         return driver
     except Exception as e:
