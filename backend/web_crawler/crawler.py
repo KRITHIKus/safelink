@@ -28,7 +28,7 @@ def setup_driver():
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # ✅ Bypass bot detection
 
     # ✅ Get Chrome & ChromeDriver paths from environment variables
-    chrome_binary = os.getenv("CHROME_BINARY", "/opt/render/chrome/chrome")
+    chrome_binary = os.getenv("CHROME_BINARY", "/opt/render/chrome")
     chromedriver_binary = os.getenv("CHROMEDRIVER_BINARY", "/opt/render/chrome/chromedriver")
 
     # ✅ Ensure binaries exist before proceeding

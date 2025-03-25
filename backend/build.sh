@@ -52,8 +52,8 @@ rm -f chromedriver.zip  # Cleanup zip file
 mv -f chromedriver-linux64 chromedriver
 chmod +x chromedriver
 
-# ✅ Set Environment Variables (Critical Fix)
-export CHROME_BINARY="$INSTALL_DIR/chrome/chrome"
+# ✅ 🔥 **Fix: Set Correct Environment Variables**
+export CHROME_BINARY="$INSTALL_DIR/chrome"  # ✅ Fixed path
 export CHROMEDRIVER_BINARY="$INSTALL_DIR/chromedriver"
 
 # ✅ Ensure We Are in the Backend Directory
