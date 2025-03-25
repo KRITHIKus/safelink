@@ -9,7 +9,6 @@ from selenium.webdriver.chrome.service import Service
 import cloudinary.uploader  # ✅ Added Cloudinary upload
 import time  # ✅ Fix: Import time module
 
-
 # Set path to your local ChromeDriver executable
 CHROME_DRIVER_PATH = "chromedriver.exe"
 
@@ -36,11 +35,16 @@ async def capture_screenshot(url, domain):
             driver.get(url)
             screenshot_data = driver.get_screenshot_as_png()  # ✅ Capture screenshot as bytes
 
-            # ✅ Upload directly to Cloudinary
             cloudinary_id = f"{domain}_{int(time.time())}"  
+            
+            print(f"✅ Attempting to upload screenshot to Cloudinary: {cloudinary_id}")
+
             response = cloudinary.uploader.upload(screenshot_data, public_id=cloudinary_id, overwrite=False)
 
-            return response.get("secure_url")  # ✅ Return Cloudinary URL
+            cloudinary_url = response.get("secure_url")
+            print(f"✅ Cloudinary Upload Successful: {cloudinary_url}")
+
+            return cloudinary_url  # ✅ Return Cloudinary URL
         except Exception as e:
             print(f"❌ Screenshot capture failed: {e}")
             return None
