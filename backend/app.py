@@ -9,8 +9,11 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# ✅ Get the frontend URL from .env
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")  # Default to localhost if not set
+
 # ✅ Expanded CORS Policy (Fixes CORS Errors)
-CORS(app, resources={r"/*": {"origins": ["http://localhost:5173", "*"]}})
+CORS(app, resources={r"/*": {"origins": [FRONTEND_URL, "*"]}})
 
 # ✅ Cloudinary Configuration with Error Handling
 CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
