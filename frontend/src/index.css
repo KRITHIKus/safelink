@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+/* Dark mode background */
+.dark body {
+  @apply bg-[#0c1031] text-gray-200;
+}
+
+.nav-link {
+  @apply text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200;
+}
+
+
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+/* Headings with Playfair Display */
+h1, h2, h3 {
+  font-family: "Playfair Display", serif;
+}
+
+@keyframes glow {
+  0% {
+    text-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6;
+  }
+  50% {
+    text-shadow: 0 0 10px #60a5fa, 0 0 20px #60a5fa;
+  }
+  100% {
+    text-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6;
+  }
+}
+
+.animate-glow {
+  animation: glow 2s infinite alternate ease-in-out;
+}
