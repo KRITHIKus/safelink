@@ -14,7 +14,7 @@ import os
 # ✅ Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# ✅ Corrected Chrome and ChromeDriver paths (Persistent storage)
+# ✅ Chrome & ChromeDriver paths
 CHROME_BINARY = "/opt/render/project/src/chrome/chrome/chrome"
 CHROMEDRIVER_BINARY = "/opt/render/project/src/chrome/chromedriver/chromedriver"
 
@@ -42,7 +42,7 @@ def setup_driver():
         return None
 
     chrome_options = Options()
-    chrome_options.add_argument("--headless=new")  # ✅ Updated headless mode
+    chrome_options.add_argument("--headless=new")  
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -51,8 +51,8 @@ def setup_driver():
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-software-rasterizer")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-
-    # ✅ New Fixes for Stability
+    
+    # ✅ New Fixes for Worker Timeout
     chrome_options.add_argument("--disable-setuid-sandbox")
     chrome_options.add_argument("--disable-crash-reporter")
     chrome_options.add_argument("--disable-translate")
@@ -62,15 +62,19 @@ def setup_driver():
 
     chrome_options.binary_location = CHROME_BINARY
 
-    # ✅ Ensure ChromeDriver has execute permissions
     os.chmod(CHROMEDRIVER_BINARY, 0o777)
 
-    # ✅ Added delay before starting ChromeDriver to prevent session issues
-    time.sleep(2)
+    time.sleep(2)  # ✅ Prevent race condition
 
     try:
         service = Service(CHROMEDRIVER_BINARY)
         driver = webdriver.Chrome(service=service, options=chrome_options)
+
+        # ✅ Set a page load timeout to prevent delays
+        driver.set_page_load_timeout(15)  
+        driver.implicitly_wait(5)  # ✅ Reduce waiting time
+        driver.set_window_size(1280, 720)  # ✅ Reduce memory usage
+
         logging.info("✅ ChromeDriver initialized successfully.")
         return driver
     except Exception as e:
@@ -88,7 +92,7 @@ async def capture_screenshot(url, domain):
         try:
             logging.info(f"🌐 Navigating to {url}...")
             driver.get(url)
-            time.sleep(3)  # ✅ Wait for the page to load
+            time.sleep(3)  
 
             screenshot_data = driver.get_screenshot_as_png()
             cloudinary_id = f"{domain}_{int(time.time())}"
@@ -120,7 +124,7 @@ async def fetch_page_content(url, retries=3):
     async with aiohttp.ClientSession() as session:
         for attempt in range(retries):
             try:
-                async with session.get(url, headers=headers, timeout=15) as response:
+                async with session.get(url, headers=headers, timeout=10) as response:
                     if response.status == 200:
                         return await response.text()
                     logging.warning(f"⚠️ Attempt {attempt + 1} failed for {url}. Retrying...")
@@ -142,7 +146,7 @@ async def crawl_website(url):
     # ✅ Extracting title
     title = soup.title.string.strip() if soup and soup.title else "No Title"
 
-    # ✅ Extracting meta description (Try both standard and OpenGraph meta tags)
+    # ✅ Extracting meta description
     description = "No Description"
     if soup:
         meta_desc = soup.find("meta", attrs={"name": "description"})
@@ -159,6 +163,6 @@ async def crawl_website(url):
     return {
         "url": url,
         "title": title,
-        "description": description,  # ✅ Now includes meta description
+        "description": description,  
         "screenshot_url": cloudinary_url
     }
