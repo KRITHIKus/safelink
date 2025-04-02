@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/Navbar.tsx";
 import Footer from "./components/Footer";
 import Home from "./components/UrlScanner";
 import AllScans from "./components/AllScans";

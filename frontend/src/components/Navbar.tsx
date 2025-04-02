@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faTimes } from "@fortawesome/free-solid-svg-icons";
@@ -7,7 +7,14 @@ const Navbar = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Function to close the menu when a link is clicked
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+  }, [isOpen]);
+
   const closeMenu = () => setIsOpen(false);
 
   return (
@@ -18,7 +25,7 @@ const Navbar = () => {
       </Link>
 
       {/* Desktop Navigation */}
-      <div className="hidden md:flex gap-6">
+      <div className="hidden md:flex gap-6 items-center">
         <Link
           to="/"
           className={`text-white transition-all duration-300 hover:text-blue-400 ${
@@ -35,6 +42,16 @@ const Navbar = () => {
         >
           Scans
         </Link>
+
+        {/* Rickroll Prank Link */}
+        <a
+          href="https://youtu.be/xvFZjo5PgG0?feature=shared"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white transition-all duration-300 hover:text-blue-400"
+        >
+          Click for the source
+        </a>
       </div>
 
       {/* Mobile Menu Button */}
@@ -50,29 +67,28 @@ const Navbar = () => {
         className={`fixed top-0 left-0 w-full h-screen bg-black/60 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500 ${
           isOpen ? "opacity-100 visible" : "opacity-0 invisible"
         }`}
-        onClick={closeMenu} // Closes menu when clicking outside
+        onClick={closeMenu}
       >
-        {/* Close Button (Top-Right Corner) */}
-        <button
-          className="absolute top-6 right-6 text-white text-2xl focus:outline-none transition-transform duration-300 transform hover:scale-110 hover:text-blue-400"
-          onClick={closeMenu}
-        >
-          <FontAwesomeIcon icon={faTimes} />
-        </button>
-
         <div
-          className={`bg-[#121a36] p-6 rounded-lg shadow-xl flex flex-col items-center gap-6 transform transition-all duration-500 ${
+          className={`bg-[#121a36] p-6 rounded-lg shadow-xl flex flex-col items-center gap-6 max-h-screen overflow-y-auto transform transition-all duration-500 ${
             isOpen ? "translate-y-0 opacity-100" : "-translate-y-10 opacity-0"
           }`}
-          onClick={(e) => e.stopPropagation()} // Prevents closing when clicking inside
+          onClick={(e) => e.stopPropagation()}
         >
-          {/* Menu Links */}
+          {/* Close Button Inside Menu */}
+          <button
+            className="self-end text-white text-2xl focus:outline-none transition-transform duration-300 transform hover:scale-110 hover:text-blue-400"
+            onClick={closeMenu}
+          >
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+
           <Link
             to="/"
             className={`text-white text-lg transition-all duration-300 hover:text-blue-400 ${
               location.pathname === "/" ? "font-semibold border-b-2 border-blue-400" : ""
             }`}
-            onClick={closeMenu} // Closes menu when clicking a link
+            onClick={closeMenu}
           >
             Home
           </Link>
@@ -82,10 +98,20 @@ const Navbar = () => {
             className={`text-white text-lg transition-all duration-300 hover:text-blue-400 ${
               location.pathname === "/all-scans" ? "font-semibold border-b-2 border-blue-400" : ""
             }`}
-            onClick={closeMenu} // Closes menu when clicking a link
+            onClick={closeMenu}
           >
             Scans
           </Link>
+
+          {/* Rickroll Prank Link in Mobile */}
+          <a
+            href="https://youtu.be/xvFZjo5PgG0?feature=shared"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white text-lg transition-all duration-300 hover:text-blue-400"
+          >
+            Click for the source
+          </a>
         </div>
       </div>
     </nav>
