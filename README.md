@@ -1,59 +1,67 @@
 # 🚀 Bullseye – URL Safety Scanner
 
-Bullseye is a futuristic, professional-grade web application that allows users to scan URLs for safety threats such as phishing or malware. It combines modern frontend technology with real-time scanning APIs and a smart crawler. Users can view results with screenshots, status filters, and more, all wrapped in a sleek, mobile-responsive interface.
+**Bullseye** is a futuristic, professional-grade web application designed to scan URLs for security threats like phishing and malware. It leverages real-time APIs, an intelligent crawler, and modern UI design to deliver fast, reliable results in a sleek, mobile-responsive interface.
+
+---
 
 ## 🛠️ Tech Stack
 
-### 🔹 Frontend
-- **Framework**: React + Vite
-- **Styling**: Tailwind CSS 3
-- **Theme Toggle**: Light/Dark Mode with smooth transitions
-- **Icons**: FontAwesome
-- **Routing**: React Router
+### 💻 Frontend
+- **Framework:** React + Vite  
+- **Styling:** Tailwind CSS 3  
+- **Theme:** Light/Dark mode with smooth transitions  
+- **Icons:** FontAwesome  
+- **Routing:** React Router  
 
-### 🔹 Backend
-- **Language**: Python (FastAPI or Flask)
-- **Database**: MongoDB (two collections: `safesurf`, `screenshots`)
-- **Screenshot Storage**: Cloudinary
-- **Scan APIs**:
-  - VirusTotal API (for URL safety analysis)
-  - Custom crawler (for screenshot and metadata extraction)
+### 🔧 Backend
+- **Language:** Python (FastAPI or Flask)  
+- **Database:** MongoDB (Collections: `safesurf`, `screenshots`)  
+- **Screenshot Storage:** Cloudinary  
+- **APIs Used:**  
+  - VirusTotal API (URL threat analysis)  
+  - Custom Crawler (Screenshot & metadata extraction)  
 
-### 🔹 Hosting
-- **Frontend & Backend**: Deployed on Render
-- **Database**: MongoDB Atlas
-- **Screenshots**: Cloudinary (named by website domain)
+### ☁️ Hosting
+- **Deployment:** Render (Frontend + Backend)  
+- **Database:** MongoDB Atlas  
+- **Media:** Cloudinary (Screenshots stored by domain)  
 
-## 📋 Features
-- 🔍 Scan any URL for threats using VirusTotal
-- 🌐 Take real-time screenshots of websites using a smart crawler
-- 🖼️ View and fullscreen screenshots in scan results
-- 🧩 Dual-pane layout: VirusTotal on the left, Crawler on the right
-- 🌗 Light and Dark mode support with smooth UI transitions
-- ✅ Status indicators for Safe / ⚠️ Malicious sites
-- 📱 Fully responsive and mobile-friendly interface
-- 🔄 Filter scans by status (All, Safe, Malicious)
-- 🕓 Recent scans: displays the latest 10 by default
-- 📂 “See More” page to view extended scan history
-- 📸 QR Code popup for quick mobile access
+---
 
-## 📁 Frontend Folder Structure
+## 📋 Key Features
+- 🔍 **Scan URLs** using VirusTotal API  
+- 🌐 **Real-time screenshots** with a custom crawler  
+- 🖼️ **Fullscreen screenshot** view  
+- 🧮 **Dual-pane result layout** (VirusTotal + Crawler)  
+- 🌗 **Dark/Light mode** with smooth UI transitions  
+- ✅ **Status badges**: Safe / ⚠️ Malicious  
+- 📱 **Fully responsive** and mobile-ready design  
+- 🔄 **Status-based filtering** (All, Safe, Malicious)  
+- 🕓 **Recent scans** – shows latest 10  
+- 📂 **Scan History Page** with extended logs  
+- 📸 **QR Code popup** for quick mobile access  
+
+---
+
+## 🧱 Folder Structure (Frontend)
 ```plaintext
 src/
-├── components/  # Reusable UI components (Navbar, Footer, Cards, etc.)
-├── pages/       # Home, Scan, RecentScans, etc.
-├── assets/      # Icons, images, logos
-├── context/     # Theme and global state
+├── components/  # Shared UI components (Navbar, Footer, Cards, etc.)
+├── pages/       # Route-based pages (Home, Scan, History, etc.)
+├── assets/      # Static files (logos, icons)
+├── context/     # Theme and global state providers
 ├── utils/       # Helper functions
 ├── App.jsx
 └── main.jsx
-🗃️ MongoDB Collections
-📂 1. safesurf
-Stores scan result metadata:
+```
 
-json
-Copy
-Edit
+---
+
+## 🗃️ MongoDB Collections
+
+### 📂 `safesurf`
+Stores metadata of scanned URLs:
+```json
 {
   "url": "https://example.com",
   "status": "Safe",
@@ -61,87 +69,74 @@ Edit
   "virustotalData": { ... },
   "crawlerData": { ... }
 }
-📂 2. screenshots
-Stores screenshot URLs hosted on Cloudinary:
+```
 
-json
-Copy
-Edit
+### 📂 `screenshots`
+Stores screenshot URLs hosted on Cloudinary:
+```json
 {
   "url": "https://example.com",
   "websiteName": "example",
   "screenshotUrl": "https://res.cloudinary.com/your-cloud-name/image/upload/example.png"
 }
-⚙️ How It Works – Workflow
-User submits a URL
+```
 
-Frontend: Shows a loading indicator, sends a request to the backend.
+---
 
-Backend:
+## ⚙️ Workflow
 
-Calls the VirusTotal API for threat analysis.
+1. **User submits a URL**  
+2. **Frontend**  
+   - Shows loading indicator  
+   - Sends URL to backend  
+3. **Backend**  
+   - Queries VirusTotal API  
+   - Launches crawler to visit and capture screenshot  
+   - Uploads screenshot to Cloudinary  
+   - Saves results to MongoDB  
+4. **Frontend**  
+   - Displays side-by-side results  
+   - Supports fullscreen screenshot view  
+   - Allows filtering by threat status  
 
-Uses a custom crawler to visit the site and take a screenshot.
+---
 
-Uploads the screenshot to Cloudinary.
+## 🌐 Live Site
+🔗  [Bullseye URL Safety Scanner](https://bullseye-n9jz.onrender.com)
 
-Saves results in MongoDB (safesurf & screenshots).
+---
 
-Frontend:
+## 🧩 Component Overview
+- **Navbar** – Site-wide navigation + theme toggle  
+- **URL Scanner** – Input field + scan button  
+- **Scan Results** – Dual-panel view  
+- **Screenshot Viewer** – With fullscreen option  
+- **Recent Scans** – Displays last 10 URLs  
+- **See More Page** – Historical logs + filters  
+- **QR Button** – Opens mobile QR access  
+- **Footer** – Clean, theme-matching design  
 
-Displays results side-by-side (VirusTotal on left, crawler/screenshot on right).
+---
 
-Allows full-screen screenshot viewing.
+## 🎨 Design Highlights
+- Spacious, VirusTotal-style layout  
+- Smooth transitions between themes  
+- Status highlighting with professional iconography  
+- Consistent UI in both dark/light modes  
+- No emoji clutter — only essential symbols used  
+- FontAwesome icons for clean visual communication  
 
-Enables status-based filtering (Safe / Malicious / All).
+---
 
-🌐 Live Site
-🔗 Bullseye URL Safety Scanner
+## 🔮 Future Enhancements
+- User login & personal scan dashboard  
+- PDF / Email scan reports  
+- Graphical scan summaries  
+- Internationalization (i18n) support  
+- Caching + performance optimization  
 
-🧩 UI Components Overview
-Navbar – Site-wide navigation with theme toggle
+---
 
-URL Scanner – Input field for URL + Scan button
+## 👨‍💻 Author
 
-Scan Results View – Dual-panel result display
-
-Screenshot Viewer – With fullscreen preview
-
-Recent Scans – Shows the latest 10 scans
-
-See More Page – All historical scans + filters
-
-QR Code Button – Floating button revealing QR popup
-
-Footer – Simple, theme-matching footer
-
-📌 Design Highlights
-VirusTotal-inspired layout with spacious alignment
-
-Light and Dark theme support across all pages
-
-Keyword highlighting for scan status
-
-FontAwesome icons (no emojis)
-
-Smooth transitions and visual clarity
-
-No design inconsistencies across themes
-
-📈 Future Enhancements
-User login & scan history dashboard
-
-Email / PDF reports for scanned URLs
-
-Visual graphs for scan breakdown
-
-Internationalization (i18n)
-
-Performance improvements and smart caching
-
-👨‍🎓 Author
-Developed as a final year college project to combine cybersecurity, web crawling, and modern web development with real-world deployment and UI/UX best practices.
-
-
-
-
+Developed as a **final year engineering project**, Bullseye merges cybersecurity, intelligent crawling, and modern web design into a single powerful tool with real-world deployment and professional UI/UX standards.
