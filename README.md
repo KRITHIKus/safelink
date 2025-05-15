@@ -139,4 +139,16 @@ Stores screenshot URLs hosted on Cloudinary:
 
 ## 👨‍💻 Author
 
-Developed as a **final year engineering project**, Bullseye merges cybersecurity, intelligent crawling, and modern web design into a single powerful tool with real-world deployment and professional UI/UX standards.
+Developed as a **final year BCA project**, Bullseye merges cybersecurity, intelligent crawling, and modern web design into a single powerful tool with real-world deployment and professional UI/UX standards.
+
+
+---
+
+## 💼 My Portfolio
+
+A curated showcase of my work, skills, and journey as a developer.  
+Explore the projects, and impact behind my craft.
+
+🔗 [Visit My Portfolio](https://krithik.onrender.com/)
+
+---
