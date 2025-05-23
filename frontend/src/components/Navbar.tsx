@@ -45,7 +45,7 @@ const Navbar = () => {
 
         {/* Rickroll Prank Link */}
         <a
-          href="https://youtu.be/xvFZjo5PgG0?feature=shared"
+          href="https://github.com/KRITHIKus/safelink"
           target="_blank"
           rel="noopener noreferrer"
           className="text-white transition-all duration-300 hover:text-blue-400"
@@ -105,7 +105,7 @@ const Navbar = () => {
 
           {/* Rickroll Prank Link in Mobile */}
           <a
-            href="https://youtu.be/xvFZjo5PgG0?feature=shared"
+            href="https://github.com/KRITHIKus/safelink"
             target="_blank"
             rel="noopener noreferrer"
             className="text-white text-lg transition-all duration-300 hover:text-blue-400"

@@ -46,8 +46,17 @@ const UrlScanner = () => {
       const [crawlerResponse, virusResponse] = await Promise.allSettled([crawlerPromise, virusTotalPromise]);
 
       if (crawlerResponse.status === "fulfilled") {
-        setScanResults(crawlerResponse.value.data);
-        sessionStorage.setItem("scanResults", JSON.stringify(crawlerResponse.value.data));
+        // Check if backend returned an error object for feature extraction failure
+        const data = crawlerResponse.value.data;
+        if (data.error || data.details) {
+          // Add error message from backend to apiErrors
+          setApiErrors((prev) => [...prev, `Crawler error: ${data.details || data.error}`]);
+          setScanResults(null);
+          sessionStorage.removeItem("scanResults");
+        } else {
+          setScanResults(data);
+          sessionStorage.setItem("scanResults", JSON.stringify(data));
+        }
       } else {
         setApiErrors((prev) => [...prev, "Crawler scan failed."]);
       }
@@ -81,6 +90,18 @@ const UrlScanner = () => {
     }
   };
 
+  const isValidUrl = (input: string): boolean => {
+  const pattern = new RegExp(
+    '^(https?:\\/\\/)' +                    // require http or https
+    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*).)+[a-z]{2,})' + // domain
+    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' +    // port/path
+    '(\\?[;&a-z\\d%_.~+=-]*)?' +            // query string
+    '(\\#[-a-z\\d_]*)?$',                   // fragment
+    'i'
+  );
+  return pattern.test(input);
+};
+
   return (
     <div className="max-w-4xl mx-auto p-6 rounded-lg shadow-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition mt-28 mb-28 ">
       {/* ✅ Hero Section */}
@@ -92,23 +113,36 @@ const UrlScanner = () => {
       </div>
 
       {/* ✅ Input & Button */}
-      <div className="flex gap-2 mt-20" >
-        <input
-          type="text"
-          placeholder="Enter website URL"
-          className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-        />
-        <button
-          onClick={handleScan}
-          className="px-5 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center gap-2"
-          disabled={loading}
-        >
-          {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSearch} />}
-          {loading ? "Scanning..." : "Scan"}
-        </button>
-      </div>
+     {/* ✅ Input & Button */}
+<div className="flex flex-col gap-1 mt-20">
+  <div className="flex gap-2">
+    <input
+      type="text"
+      placeholder="Enter website URL"
+      className={`flex-1 p-3 border rounded-lg focus:outline-none transition ${
+        url && !isValidUrl(url)
+          ? 'border-red-500 focus:ring-red-500'
+          : 'border-gray-300 focus:ring-blue-500'
+      }`}
+      value={url}
+      onChange={(e) => setUrl(e.target.value)}
+    />
+    <button
+      onClick={handleScan}
+      className="px-5 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+      disabled={loading || !isValidUrl(url)}
+    >
+      {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSearch} />}
+      {loading ? "Scanning..." : "Scan"}
+    </button>
+  </div>
+
+  {/* Warning message */}
+  {url && !isValidUrl(url) && (
+    <p className="text-red-500 text-sm ml-1">Please enter a valid URL (e.g., https://example.com)</p>
+  )}
+</div>
+
 
       {error && <p className="text-red-500 mt-2">{error}</p>}
 
@@ -124,22 +158,21 @@ const UrlScanner = () => {
       )}
 
       {/* ✅ Website Status Indicator */}
-      {/* ✅ Website Status Indicator */}
-{virusTotalResults && (
-  <div className="mt-6 flex items-center justify-center gap-3 p-4 rounded-lg font-bold text-white text-lg">
-    {getWebsiteStatus() === "Malicious" ? (
-      <>
-        <FontAwesomeIcon icon={faTimesCircle} className="text-red-500 animate-pulse text-2xl" />
-        <span className="text-red-700 px-4 py-2 rounded-lg"> Warning: Malicious Website</span>
-      </>
-    ) : (
-      <>
-        <FontAwesomeIcon icon={faCheckCircle} className="text-green-500 animate-pulse text-2xl" />
-        <span className=" text-xl  text-green-600 px-1 py-2 rounded-lg"> This Website is Safe</span>
-      </>
-    )}
-  </div>
-)}
+      {virusTotalResults && (
+        <div className="mt-6 flex items-center justify-center gap-3 p-4 rounded-lg font-bold text-white text-lg">
+          {getWebsiteStatus() === "Malicious" ? (
+            <>
+              <FontAwesomeIcon icon={faTimesCircle} className="text-red-500 animate-pulse text-2xl" />
+              <span className="text-red-700 px-4 py-2 rounded-lg"> Warning: Malicious Website</span>
+            </>
+          ) : (
+            <>
+              <FontAwesomeIcon icon={faCheckCircle} className="text-green-500 animate-pulse text-2xl" />
+              <span className=" text-xl  text-green-600 px-1 py-2 rounded-lg"> This Website is Safe</span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ✅ Scan Results Section */}
       {scanResults && (

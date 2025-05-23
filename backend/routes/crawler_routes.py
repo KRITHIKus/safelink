@@ -12,22 +12,6 @@ from ml_analysis.feature_extraction import extract_features
 from db.db_config import screenshots  # ✅ Import new collection
 
 crawler_bp = Blueprint("crawler", __name__)
-
-# Load ML Model
-model_path = os.path.join(os.path.dirname(__file__), "..", "ml_analysis", "trained_model.pkl")
-try:
-    model = joblib.load(model_path)
-    print("✅ ML model loaded successfully!")
-except Exception as e:
-    print(f"❌ Error loading ML model: {e}")
-    model = None  
-
-FEATURE_ORDER = [
-    "PrefixSuffix-", "SubDomains", "HTTPS", "DomainRegLen", "HTTPSDomainURL",
-    "RequestURL", "AnchorURL", "ServerFormHandler", "WebsiteTraffic",
-    "LinksPointingToPage"
-]
-
 @crawler_bp.route("/scan", methods=["POST"])
 def crawl():
     """Main route to scan a URL with Crawler and ML model."""
@@ -53,26 +37,6 @@ async def run_scan(url):
     """Runs feature extraction, ML model, and web crawler asynchronously."""
     start_time = time.time()
     print(f"🚀 Running scan for {url}...")
-
-    # ✅ Extract Features
-    print("🔄 Extracting features...")
-    features_df, error = await extract_features(url)
-    if error:
-        print(f"❌ Feature extraction failed: {error}")
-        return {"error": "Feature extraction failed", "details": str(error)}
-
-    print(f"✅ Features extracted: {features_df.columns.tolist()}")
-
-    # ✅ Ensure feature order is correct
-    for feature in FEATURE_ORDER:
-        if feature not in features_df.columns:
-            features_df[feature] = 0  
-    features_df = features_df[FEATURE_ORDER]
-
-    # ✅ Run ML Model
-    print("🤖 Running ML model...")
-    ml_prediction, confidence_score = run_ml_model(features_df)
-    print(f"✅ ML Prediction: {ml_prediction}, Confidence: {confidence_score}%")
 
     # ✅ Run Web Crawler
     print("🌐 Running web crawler...")
@@ -105,30 +69,11 @@ async def run_scan(url):
     response = {
         "url": url,
         "crawler_results": crawler_results,  # ✅ Contains "title", "description", and "screenshot_url"
-        "ml_response": {"ml_prediction": ml_prediction, "confidence": confidence_score},
         "execution_time": round(time.time() - start_time, 3)
     }
 
     print(f"🏁 Scan complete for {url}, Execution Time: {response['execution_time']}s")
     return response
-
-def run_ml_model(features_df):
-    """Runs ML Model on extracted features."""
-    print("🔍 Running ML Model...")
-    
-    if model is None:
-        print("❌ ML model not loaded!")
-        return "Error: ML model not loaded", 0.0
-
-    try:
-        prediction = model.predict(features_df)[0]
-        probabilities = model.predict_proba(features_df)[0]
-        confidence = max(probabilities)
-        print(f"✅ ML Model Prediction: {prediction}, Confidence Score: {confidence * 100:.2f}%")
-        return ("Malicious" if prediction == 1 else "Safe"), round(confidence * 100, 2)
-    except Exception as e:
-        print(f"❌ Error in ML model prediction: {e}")
-        return f"Error: ML model prediction failed: {str(e)}", 0.0
 
 def upload_screenshot(url, screenshot_path):
     """Uploads screenshot to Cloudinary and returns the URL."""
