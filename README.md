@@ -149,6 +149,7 @@ Developed as a **final year BCA project**, Bullseye merges cybersecurity, intell
 A curated showcase of my work, skills, and journey as a developer.  
 Explore the projects, and impact behind my craft.
 
-🔗 [Visit My Portfolio](https://krithik.onrender.com/)
+🔗 [Visit My Portfolio](https://krithikus.onrender.com/)
 
 ---
+
