@@ -4,14 +4,16 @@
     "module": "ESNext",
     "jsx": "react-jsx",
     "strict": true,
-    "moduleResolution": "Node",
+
+    "moduleResolution": "Bundler",
+
     "resolveJsonModule": true,
     "isolatedModules": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["vite/client"]  // ✅ Add this line
+    "types": ["vite/client"]
   },
-  "include": ["src", "vite-env.d.ts"],  // ✅ Ensure vite-env.d.ts is included
+  "include": ["src", "vite-env.d.ts"],
   "exclude": ["node_modules"]
 }

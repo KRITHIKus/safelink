@@ -113,7 +113,8 @@ def _update_cached_crawler_results(url: str, crawler_results: dict) -> None:
 def _extract_domain(url: str) -> str:
     """Return the first label of the hostname, e.g. https://amazon.com → amazon"""
     try:
-        return urlparse(url).netloc.split(".")[0]
+      netloc = urlparse(url).netloc
+      return netloc.lstrip("www.").split(".")[0]
     except Exception:
         return "unknown"
 

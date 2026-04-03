@@ -1,29 +1,38 @@
 import { Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "./context/ThemeContext";
+import { SystemStatusProvider } from "./context/SystemStatusContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Home from "./components/UrlScanner";
 import AllScans from "./components/AllScans";
-import InfoSection from "./components/InfoSection";
+import About from "./components/InfoSection";
 
 const App = () => {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      
-      {/* Main Content Area */}
-      <main className="flex-grow">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/all-scans" element={<AllScans />} />
-          <Route path="/info" element={<InfoSection />} /> 
-        </Routes>
-      </main>
-
-      {/* Info Section (before Footer) */}
-      <InfoSection />
-
-      <Footer />
-    </div>
+    <ThemeProvider>
+      <SystemStatusProvider>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            minHeight: "100vh",
+            background: "var(--bg-base)",
+            color: "var(--text-primary)",
+            transition: "background 600ms ease-in-out, color 600ms ease-in-out",
+          }}
+        >
+          <Navbar />
+          <main style={{ flexGrow: 1 }}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/all-scans" element={<AllScans />} />
+              <Route path="/about" element={<About />} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </SystemStatusProvider>
+    </ThemeProvider>
   );
 };
 
