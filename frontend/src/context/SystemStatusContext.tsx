@@ -10,7 +10,7 @@ import axios from "axios";
 
 const BACKEND = "https://safelink-backend-3v3n.onrender.com";
 const PING_ENDPOINT = `${BACKEND}/health`;
-const PING_INTERVAL_MS = 30_000; // re-ping every 30s after first response
+const PING_INTERVAL_MS = 100_000; // re-ping every 30s after first response
 
 type SystemStatus = "checking" | "online" | "offline";
 

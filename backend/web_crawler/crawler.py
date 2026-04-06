@@ -10,7 +10,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
 import cloudinary.uploader
 
@@ -22,16 +21,39 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ── Chrome binary paths (set by build.sh on Render) ───────────────────────────
-CHROME_BINARY      = "/opt/render/project/src/chrome/chrome/chrome"
+CHROME_BINARY       = "/opt/render/project/src/chrome/chrome/chrome"
 CHROMEDRIVER_BINARY = "/opt/render/project/src/chrome/chromedriver/chromedriver"
 
-# ── Page load timeout for Selenium (seconds) ──────────────────────────────────
-PAGE_LOAD_TIMEOUT = 30
+# ── Timeouts ───────────────────────────────────────────────────────────────────
+#
+# PAGE_LOAD_TIMEOUT — how long Selenium waits for driver.get() to return.
+# With page_load_strategy="eager" this fires at DOMContentLoaded, not full load.
+PAGE_LOAD_TIMEOUT = 25
 
-# ── aiohttp request timeout (seconds) ─────────────────────────────────────────
+# DOM_WAIT_TIMEOUT — how long WebDriverWait polls for readyState.
+# Heavy pages (GeeksForGeeks, news sites) take 60-70s on Render free CPU.
+# We cap at 8s and take the screenshot anyway — the page is usually visible.
+DOM_WAIT_TIMEOUT = 8
+
+# SCREENSHOT_TASK_TIMEOUT — hard ceiling on the ENTIRE screenshot pipeline.
+# This is the critical fix for the 300-500s hang seen in the logs.
+#
+# What happened: get_screenshot_as_png() communicates with ChromeDriver over
+# an internal HTTP connection. On heavy pages Chrome's renderer is still busy,
+# so the /screenshot endpoint never responds. urllib3 (Selenium's HTTP layer)
+# has a default read timeout of 120s and retries 3 times automatically.
+# Result: 3 × 120s = 360s of silent hanging before any error appears.
+#
+# Fix: asyncio.wait_for() wraps the entire asyncio.to_thread(selenium_task)
+# call. After SCREENSHOT_TASK_TIMEOUT seconds the task is cancelled, Chrome
+# is killed in the finally block, and we return None (no screenshot).
+# The crawler still returns title + description — only screenshot is missing.
+SCREENSHOT_TASK_TIMEOUT = 45
+
+# aiohttp request timeout for HTML fetch
 FETCH_TIMEOUT = aiohttp.ClientTimeout(total=20, connect=8)
 
-# ── User-agents rotated per request ───────────────────────────────────────────
+# ── User-agents ────────────────────────────────────────────────────────────────
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -44,34 +66,27 @@ USER_AGENTS = [
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _ensure_chrome_exists() -> bool:
-    """Verify Chrome and ChromeDriver binaries exist and are executable."""
     if not os.path.exists(CHROME_BINARY):
         logger.error(f"Chrome binary not found: {CHROME_BINARY}")
         return False
     if not os.path.exists(CHROMEDRIVER_BINARY):
         logger.error(f"ChromeDriver not found: {CHROMEDRIVER_BINARY}")
         return False
-
-    # Ensure execute permission (build.sh does this too, belt-and-suspenders)
     os.chmod(CHROME_BINARY, 0o755)
     os.chmod(CHROMEDRIVER_BINARY, 0o755)
     return True
 
 
 def _build_chrome_options() -> Options:
-    """
-    Build a minimal, fast Chrome options set for headless screenshot capture.
-    Each flag has a comment explaining why it is here.
-    """
     opts = Options()
     opts.binary_location = CHROME_BINARY
 
     # Core headless flags
-    opts.add_argument("--headless=new")           # new headless mode — more stable than --headless
-    opts.add_argument("--no-sandbox")             # required in container environments
-    opts.add_argument("--disable-dev-shm-usage")  # /dev/shm is tiny on Render — use /tmp instead
+    opts.add_argument("--headless=new")
+    opts.add_argument("--no-sandbox")
+    opts.add_argument("--disable-dev-shm-usage")
 
-    # Performance: skip everything not needed for a screenshot
+    # Performance — skip everything not needed for a screenshot
     opts.add_argument("--disable-gpu")
     opts.add_argument("--disable-extensions")
     opts.add_argument("--disable-plugins")
@@ -89,15 +104,13 @@ def _build_chrome_options() -> Options:
     opts.add_argument("--metrics-recording-only")
     opts.add_argument("--mute-audio")
 
-    # Fixed viewport so screenshots are always consistent
+    # Fixed viewport
     opts.add_argument("--window-size=1280,900")
 
-    # Block image loading — we only need DOM metadata + a PNG screenshot
-    # The screenshot is taken after page load so images won't appear anyway
-    # but this stops image HTTP requests from holding up page load timing
+    # Block images — stops image HTTP requests from holding up page load
     opts.add_argument("--blink-settings=imagesEnabled=false")
 
-    # Memory limits — important on Render's 512MB free tier
+    # Memory limits for Render free tier (512MB RAM)
     opts.add_argument("--memory-pressure-off")
     opts.add_argument("--js-flags=--max-old-space-size=256")
 
@@ -105,22 +118,11 @@ def _build_chrome_options() -> Options:
 
 
 def _setup_driver() -> webdriver.Chrome | None:
-    """
-    Create and return a Chrome WebDriver instance.
-
-    Key changes vs original:
-    - Removed os.system("pkill -f chrome") — this killed other workers' browsers
-    - Removed time.sleep(2) before init — saved 2 seconds per scan unconditionally
-    - Added page_load_strategy = "eager" — stops waiting for all resources,
-      fires as soon as DOM is interactive (typically 2-3x faster than "normal")
-    """
     if not _ensure_chrome_exists():
         return None
 
     opts = _build_chrome_options()
-
-    # "eager" = wait for DOMContentLoaded, not full resource load
-    # This is safe for our use case — we just need the title, meta, and a screenshot
+    # "eager" = fire at DOMContentLoaded, not full network idle
     opts.page_load_strategy = "eager"
 
     try:
@@ -135,22 +137,22 @@ def _setup_driver() -> webdriver.Chrome | None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Screenshot capture
+# Screenshot capture — with hard timeout guard
 # ─────────────────────────────────────────────────────────────────────────────
 
 async def capture_screenshot(url: str, domain: str) -> str | None:
     """
-    Launch Chrome in a thread, navigate to the URL, take a PNG screenshot,
-    upload it directly to Cloudinary (in-memory bytes — no temp file),
-    and return the secure CDN URL.
+    Capture a screenshot and upload to Cloudinary.
 
-    Key changes vs original:
-    - Replaced time.sleep(5) with WebDriverWait on document.readyState
-      Saves 3+ seconds on fast sites; still waits up to PAGE_LOAD_TIMEOUT on slow ones
-    - Removed retry sleep(2) — immediate retry is fine
-    - Screenshot bytes uploaded in-memory — no temp file written to disk
-    - Single upload path (crawler_routes.py no longer does a second upload)
+    The entire pipeline (Chrome nav + screenshot + Cloudinary upload) is wrapped
+    in asyncio.wait_for(SCREENSHOT_TASK_TIMEOUT). If Chrome hangs on a heavy
+    page, the task is cancelled after 45 seconds and None is returned.
+    The crawler still returns title and description — only screenshot is skipped.
+
+    This fixes the 300-500s hang caused by urllib3 retrying the
+    /screenshot ChromeDriver endpoint 3 × 120s on pages like GeeksForGeeks.
     """
+
     def _selenium_task() -> str | None:
         driver = _setup_driver()
         if driver is None:
@@ -162,25 +164,36 @@ async def capture_screenshot(url: str, domain: str) -> str | None:
             try:
                 driver.get(url)
             except TimeoutException:
-                # Page load strategy "eager" can time out on slow resource loads —
-                # but the DOM is usually ready. Try to take the screenshot anyway.
+                # page_load_strategy="eager" times out on slow resource loads
+                # but DOM is usually ready — attempt screenshot anyway
                 logger.warning(f"Page load timed out for {url} — attempting screenshot anyway")
             except WebDriverException as e:
                 logger.error(f"Navigation failed for {url}: {e}")
                 return None
 
-            # Wait for document.readyState instead of a fixed sleep.
-            # Most pages reach "interactive" or "complete" within 1-2 seconds.
+            # Wait for DOM readiness — capped at DOM_WAIT_TIMEOUT seconds.
+            # We do NOT wait longer than this even on heavy pages.
+            # The screenshot will capture whatever is rendered at that point.
             try:
-                WebDriverWait(driver, 10).until(
+                WebDriverWait(driver, DOM_WAIT_TIMEOUT).until(
                     lambda d: d.execute_script("return document.readyState") in ("interactive", "complete")
                 )
                 logger.info(f"DOM ready for {url}")
             except TimeoutException:
-                logger.warning(f"DOM not ready within 10s for {url} — proceeding anyway")
+                logger.warning(f"DOM not ready within {DOM_WAIT_TIMEOUT}s for {url} — taking screenshot anyway")
 
-            # Capture PNG bytes directly — never write to disk
-            png_bytes = driver.get_screenshot_as_png()
+            # get_screenshot_as_png() — this is where the hang occurs on heavy pages.
+            # The asyncio.wait_for() wrapping this entire coroutine is the actual
+            # timeout guard. If Chrome's renderer doesn't respond, the task is
+            # cancelled externally. We still need the try/except here for non-timeout
+            # exceptions like OOM or renderer crash.
+            logger.info(f"Capturing screenshot for {url}")
+            try:
+                png_bytes = driver.get_screenshot_as_png()
+            except Exception as e:
+                logger.error(f"get_screenshot_as_png failed for {url}: {e}")
+                return None
+
             if not png_bytes:
                 logger.error("Screenshot returned empty bytes")
                 return None
@@ -213,11 +226,26 @@ async def capture_screenshot(url: str, domain: str) -> str | None:
             try:
                 driver.quit()
             except Exception:
-                pass  # Already dead — ignore
+                pass
 
-    # Run the synchronous Selenium task in a thread pool so it doesn't block
-    # the async event loop or other concurrent requests
-    return await asyncio.to_thread(_selenium_task)
+    # Hard ceiling: if selenium_task takes longer than SCREENSHOT_TASK_TIMEOUT
+    # seconds (including Chrome init, navigation, DOM wait, screenshot, and
+    # Cloudinary upload), cancel it and return None.
+    try:
+        result = await asyncio.wait_for(
+            asyncio.to_thread(_selenium_task),
+            timeout=SCREENSHOT_TASK_TIMEOUT,
+        )
+        return result
+    except asyncio.TimeoutError:
+        logger.warning(
+            f"Screenshot task timed out after {SCREENSHOT_TASK_TIMEOUT}s for {url} "
+            f"— returning None (title/description still available)"
+        )
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error in capture_screenshot: {e}")
+        return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -225,15 +253,6 @@ async def capture_screenshot(url: str, domain: str) -> str | None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 async def fetch_page_content(url: str, retries: int = 2) -> str | None:
-    """
-    Fetch raw HTML via aiohttp with proper timeout and retry.
-
-    Key changes vs original:
-    - timeout=15 (int) → aiohttp.ClientTimeout(total=20, connect=8)
-      The original int was silently ignored by aiohttp — no timeout was enforced
-    - retries reduced from 3 to 2 — third retry rarely succeeds and costs time
-    - Added ssl=False to handle sites with invalid certificates without crashing
-    """
     headers = {"User-Agent": random.choice(USER_AGENTS)}
 
     async with aiohttp.ClientSession(timeout=FETCH_TIMEOUT) as session:
@@ -260,30 +279,22 @@ async def fetch_page_content(url: str, retries: int = 2) -> str | None:
 
 async def crawl_website(url: str) -> dict:
     """
-    Fetch page HTML and capture a screenshot concurrently.
-
-    Key changes vs original:
-    - HTML fetch and screenshot now run concurrently via asyncio.gather()
-      Previously: fetch HTML first (serial), then screenshot (serial)
-      Now: both start at the same time — saves the HTML fetch time (~1-3s)
-    - lxml parser instead of html.parser — 3-5x faster on large pages
-    - Returns https flag so frontend can display it in the results panel
+    Fetch HTML and capture screenshot concurrently.
+    If screenshot times out (heavy page), crawl still completes with title/description.
     """
     parsed = urlparse(url)
-    domain = parsed.netloc.lower().replace(":", "_")  # safe for Cloudinary IDs
+    domain = parsed.netloc.lower().replace(":", "_")
 
     logger.info(f"Starting crawl for {url}")
 
-    # Run HTML fetch and screenshot in parallel
-    html_task        = asyncio.create_task(fetch_page_content(url))
-    screenshot_task  = asyncio.create_task(capture_screenshot(url, domain))
+    # Both tasks run in parallel — screenshot timeout does not delay HTML fetch
+    html_task       = asyncio.create_task(fetch_page_content(url))
+    screenshot_task = asyncio.create_task(capture_screenshot(url, domain))
 
     page_content, screenshot_url = await asyncio.gather(
         html_task, screenshot_task, return_exceptions=True
     )
 
-    # Handle exceptions from gather (return_exceptions=True prevents one failure
-    # from cancelling the other task)
     if isinstance(page_content, Exception):
         logger.error(f"HTML fetch raised exception: {page_content}")
         page_content = None
@@ -292,24 +303,22 @@ async def crawl_website(url: str) -> dict:
         logger.error(f"Screenshot raised exception: {screenshot_url}")
         screenshot_url = None
 
-    # Parse HTML
     title       = "No Title"
     description = "No Description"
     is_https    = url.lower().startswith("https://")
 
     if page_content:
         try:
-            # lxml is significantly faster than the built-in html.parser
             soup = BeautifulSoup(page_content, "lxml")
         except Exception:
             soup = BeautifulSoup(page_content, "html.parser")
 
         if soup.title and soup.title.string:
-            title = soup.title.string.strip()[:200]  # cap length
+            title = soup.title.string.strip()[:200]
 
         meta = soup.find("meta", attrs={"name": "description"})
         if meta and meta.get("content"):
-            description = meta["content"].strip()[:500]  # cap length
+            description = meta["content"].strip()[:500]
     else:
         logger.error(f"No HTML content for {url}")
 

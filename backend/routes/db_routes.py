@@ -46,14 +46,28 @@ def get_urls_by_status():
     if date_str:
         try:
             date = datetime.strptime(date_str, "%Y-%m-%d")
-            query["timestamp"] = {"$gte": date, "$lt": date.replace(hour=23, minute=59, second=59)}
+            query["timestamp"] = {
+                "$gte": date,
+                "$lt": date.replace(hour=23, minute=59, second=59)
+            }
         except ValueError:
             return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
 
-    results = list(collection.find(query, {"_id": 0}))
+    # ✅ FIXED INDENTATION
+    results = list(collection.find(query, {
+        "_id": 0,
+        "url": 1,
+        "timestamp": 1,
+        "virustotal_results.status": 1,
+        "virustotal_results.malicious_detections": 1,
+        "virustotal_results.total_scans": 1,
+        "virustotal_results.last_scan_date": 1,
+        "crawler_results.title": 1,
+        "crawler_results.screenshot_url": 1,
+        "crawler_results.https": 1,
+    }))
 
     return jsonify(results if results else {"message": "No URLs found for the given filters"}), 200
-
 @db_bp.route("/get-screenshot", methods=["GET"])
 def get_screenshot():
     """Fetch screenshot URL for a specific website."""
