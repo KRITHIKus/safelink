@@ -41,6 +41,8 @@ type ScanPhase = "idle" | "scanning" | "safe" | "threat" | "partial";
 
 interface ScanResult {
   url: string;
+  cached?: boolean;
+  execution_time?: number;
   crawler_results?: {
     title?: string;
     description?: string;
@@ -422,6 +424,7 @@ const Home = () => {
   const [crawlerDone, setCrawlerDone] = useState(false);
   const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
   const [awarenessVisible, setAwarenessVisible] = useState(true);
+  const [lastScanCached, setLastScanCached] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -485,9 +488,10 @@ const Home = () => {
     transitionAwareness("scanning");
 
     try {
+     const isRescan = lastScanCached || (scanResult && !scanResult.crawler_results?.screenshot_url);
       const [crawlerRes, vtRes] = await Promise.allSettled([
-        axios.post(`${BACKEND}/crawler/scan`, { url }),
-        axios.post(`${BACKEND}/virustotal/virustotal_scan`, { url }),
+        axios.post(`${BACKEND}/crawler/scan`, { url, force_refresh: isRescan }),
+        axios.post(`${BACKEND}/virustotal/virustotal_scan`, { url, force_refresh: isRescan }),
       ]);
 
       const nowTs = Date.now();
@@ -503,8 +507,15 @@ const Home = () => {
           sessionStorage.setItem("scanResults", JSON.stringify(d));
           setCrawlerElapsedMs(nowTs - t0);
           setCrawlerDone(true);
-          setLogLines((p) => [...p, { prefix: "CRAWLER", msg: "Analysis complete — screenshot and metadata stored", ts: nowTs }]);
-        }
+          setLastScanCached(d.cached === true);
+          setLogLines((p) => [...p, {
+            prefix: "CRAWLER",
+            msg: d.cached
+              ? "Cache hit — returning stored result (scan within 24h)"
+              : "Analysis complete — screenshot and metadata stored",
+            ts: nowTs
+          }]);
+            }
       } else {
         setApiErrors((p) => [...p, "Crawler agent did not respond."]);
         setLogLines((p) => [...p, { prefix: "CRAWLER", msg: "ERROR: Agent timeout — no response received", ts: nowTs }]);
@@ -862,8 +873,7 @@ const Home = () => {
                   <div style={{ padding: "14px 18px" }}>
                     <div className="data-row"><span className="label">Title</span><span className="value" style={{ maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{scanResult.crawler_results?.title || "—"}</span></div>
                     <div className="data-row"><span className="label">HTTPS</span><span className="value" style={{ color: scanResult.crawler_results?.https !== false ? "var(--safe)" : "var(--threat)" }}>{scanResult.crawler_results?.https !== false ? "Yes" : "No"}</span></div>
-                    <div className="data-row"><span className="label">Description</span><span className="value" style={{ maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "11px" }}>{scanResult.crawler_results?.description || "—"}</span></div>
-                    {scanResult.crawler_results?.screenshot_url && (
+<div className="data-row" style={{ alignItems: "flex-start" }}><span className="label">Description</span><span className="value" style={{ maxWidth: "200px", fontSize: "11px", whiteSpace: "normal", lineHeight: 1.5, textAlign: "right" }}>{scanResult.crawler_results?.description || "—"}</span></div>                    {scanResult.crawler_results?.screenshot_url ? (
                       <div style={{ marginTop: "12px" }}>
                         <div className="screenshot-frame">
                           <img src={scanResult.crawler_results.screenshot_url} alt="Site screenshot" style={{ width: "100%", display: "block" }} />
@@ -872,7 +882,108 @@ const Home = () => {
                           <Expand size={12} /> View Full Screen
                         </button>
                       </div>
-                    )}
+                    ) : (() => {
+                        const title = scanResult.crawler_results?.title;
+                        const desc = scanResult.crawler_results?.description;
+                        const hasContent = title && title !== "No Title";
+                        const crawlerBlocked = !hasContent && (!desc || desc === "No Description");
+                        const isCached = scanResult.cached === true;
+
+                        // Determine message and label
+                        const msg = crawlerBlocked
+                          ? "The target site blocked or rejected the crawler request. This is common on login-protected pages, Cloudflare-shielded sites, or pages that detect headless browsers."
+                          : isCached
+                          ? "This result was served from cache. The original scan did not capture a screenshot. Use Force Rescan to run a fresh crawl."
+                          : "The page loaded but Chrome's renderer timed out generating the PNG. This happens on JS-heavy or ad-intensive pages on the free-tier server (limited RAM). Metadata was captured successfully.";
+
+                        const label = crawlerBlocked
+                          ? "Crawler blocked or unreachable"
+                          : isCached
+                          ? "Cached result — no screenshot"
+                          : "Renderer timed out — free tier limitation";
+
+                        const iconColor = crawlerBlocked ? "var(--threat)" : "var(--warn)";
+                        const bgColor = crawlerBlocked ? "var(--threat-dim)" : "var(--warn-dim)";
+                        const borderColor = crawlerBlocked ? "var(--threat-border)" : "rgba(245,158,11,0.25)";
+
+                        return (
+                          <div
+                            style={{
+                              marginTop: "12px",
+                              padding: "10px 12px",
+                              background: bgColor,
+                              border: `1px solid ${borderColor}`,
+                              borderRadius: "4px",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "8px",
+                            }}
+                          >
+                            {/* Label row */}
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <AlertTriangle size={11} style={{ flexShrink: 0, color: iconColor }} />
+                              <span
+                                style={{
+                                  fontFamily: "var(--font-display)",
+                                  fontSize: "9px",
+                                  fontWeight: 600,
+                                  letterSpacing: "0.1em",
+                                  textTransform: "uppercase",
+                                  color: iconColor,
+                                }}
+                              >
+                                {label}
+                              </span>
+                            </div>
+
+                            {/* Message */}
+                            <p
+                              style={{
+                                fontFamily: "var(--font-mono)",
+                                fontSize: "11px",
+                                color: "var(--text-secondary)",
+                                lineHeight: 1.6,
+                                margin: 0,
+                              }}
+                            >
+                              {msg}
+                            </p>
+
+                            {/* Rescan button — only shown when not blocked */}
+                            {!crawlerBlocked && (
+                              <button
+                                onClick={() => {
+                                  setLastScanCached(true); // triggers force_refresh on next scan
+                                  handleScan();
+                                }}
+                                disabled={loading}
+                                style={{
+                                  alignSelf: "flex-start",
+                                  fontFamily: "var(--font-display)",
+                                  fontSize: "9px",
+                                  fontWeight: 600,
+                                  letterSpacing: "0.1em",
+                                  textTransform: "uppercase",
+                                  background: "transparent",
+                                  border: "1px solid var(--border-bright)",
+                                  borderRadius: "3px",
+                                  color: "var(--text-accent)",
+                                  cursor: loading ? "not-allowed" : "pointer",
+                                  padding: "4px 10px",
+                                  opacity: loading ? 0.5 : 1,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  transition: "all 150ms linear",
+                                }}
+                              >
+                                <Search size={10} />
+                                Force Rescan
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                   </div>
                 </div>
               )}
